@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkOneProduct } from '@/lib/checkProduct';
-
-const FREE_PLAN_LIMIT = 5;
+import { PLAN_LIMITS } from '@/lib/stripe';
 
 export async function GET() {
   const supabase = createClient();
@@ -38,14 +37,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please provide a valid product URL' }, { status: 400 });
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .single();
+
+  const plan = profile?.plan || 'free';
+  const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+
   const { count } = await supabase
     .from('tracked_products')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
-  if ((count ?? 0) >= FREE_PLAN_LIMIT) {
+  if ((count ?? 0) >= limit) {
     return NextResponse.json(
-      { error: `Free plan is limited to ${FREE_PLAN_LIMIT} tracked products.` },
+      {
+        error:
+          plan === 'free'
+            ? `Free plan is limited to ${limit} tracked products. Upgrade to Pro for more.`
+            : `Pro plan is limited to ${limit} tracked products.`,
+        limitReached: true,
+      },
       { status: 403 }
     );
   }
