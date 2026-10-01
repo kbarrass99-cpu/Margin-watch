@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { scrapeProductPage } from './scraper';
 import { sendAlertEmail } from './email';
 
@@ -17,6 +18,21 @@ type ProductForCheck = {
 // It's used by both the manual "Check now" button and the scheduled cron job.
 export async function checkOneProduct(supabase: SupabaseClient, product: ProductForCheck) {
   const result = await scrapeProductPage(product.source_url);
+
+  // Scrape failures never threw before, so they vanished silently - no
+  // error anywhere, just a stale snapshot. Surface them in Sentry so a
+  // supplier that's gone consistently unreadable (blocked, redesigned,
+  // delisted) shows up as a pattern instead of an invisible one-off.
+  if (!result.ok) {
+    Sentry.captureMessage(`Scrape failed for tracked product ${product.id}`, {
+      level: 'warning',
+      extra: {
+        productId: product.id,
+        sourceUrl: product.source_url,
+        rawStatus: result.rawStatus,
+      },
+    });
+  }
 
   const { data: prevSnapshots } = await supabase
     .from('snapshots')
@@ -52,7 +68,7 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
   }
 
   if (!prev || !result.ok) {
-    return { snapshot: inserted, alertSent: false };
+    return { snapshot: inserted, alertSent: false, scrapeOk: result.ok };
   }
 
   const messages: string[] = [];
@@ -123,8 +139,8 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
       message,
     });
 
-    return { snapshot: inserted, alertSent: true };
+    return { snapshot: inserted, alertSent: true, scrapeOk: true };
   }
 
-  return { snapshot: inserted, alertSent: false };
+  return { snapshot: inserted, alertSent: false, scrapeOk: true };
 }

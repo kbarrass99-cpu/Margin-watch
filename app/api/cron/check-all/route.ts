@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkOneProduct } from '@/lib/checkProduct';
 
@@ -25,8 +26,9 @@ async function handle(request: Request) {
   for (const product of products || []) {
     try {
       const result = await checkOneProduct(supabase, product);
-      results.push({ id: product.id, ok: true, alertSent: result.alertSent });
+      results.push({ id: product.id, ok: result.scrapeOk, alertSent: result.alertSent });
     } catch (err: any) {
+      Sentry.captureException(err, { extra: { productId: product.id } });
       results.push({ id: product.id, ok: false, error: err?.message });
     }
     // Small pause between requests so we're a polite, low-volume caller.
