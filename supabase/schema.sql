@@ -34,6 +34,7 @@ create table if not exists alerts (
 
 create index if not exists snapshots_tracked_product_id_idx on snapshots (tracked_product_id, checked_at desc);
 create index if not exists alerts_tracked_product_id_idx on alerts (tracked_product_id, created_at desc);
+create index if not exists tracked_products_user_id_idx on tracked_products (user_id);
 
 -- Row Level Security: every logged-in user can only read/write their own rows.
 alter table tracked_products enable row level security;
@@ -43,8 +44,8 @@ alter table alerts enable row level security;
 drop policy if exists "Users manage their own tracked products" on tracked_products;
 create policy "Users manage their own tracked products"
   on tracked_products for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users view snapshots of their own products" on snapshots;
 create policy "Users view snapshots of their own products"
@@ -53,7 +54,7 @@ create policy "Users view snapshots of their own products"
     exists (
       select 1 from tracked_products tp
       where tp.id = snapshots.tracked_product_id
-      and tp.user_id = auth.uid()
+      and tp.user_id = (select auth.uid())
     )
   );
 
@@ -64,7 +65,7 @@ create policy "Users insert snapshots for their own products"
     exists (
       select 1 from tracked_products tp
       where tp.id = snapshots.tracked_product_id
-      and tp.user_id = auth.uid()
+      and tp.user_id = (select auth.uid())
     )
   );
 
@@ -75,7 +76,7 @@ create policy "Users view alerts of their own products"
     exists (
       select 1 from tracked_products tp
       where tp.id = alerts.tracked_product_id
-      and tp.user_id = auth.uid()
+      and tp.user_id = (select auth.uid())
     )
   );
 
@@ -86,7 +87,7 @@ create policy "Users insert alerts for their own products"
     exists (
       select 1 from tracked_products tp
       where tp.id = alerts.tracked_product_id
-      and tp.user_id = auth.uid()
+      and tp.user_id = (select auth.uid())
     )
   );
 

@@ -16,9 +16,12 @@ alter table profiles enable row level security;
 drop policy if exists "Users can view their own profile" on profiles;
 create policy "Users can view their own profile"
   on profiles for select
-  using (auth.uid() = id);
+  using ((select auth.uid()) = id);
 
 -- Automatically create a "free" profile row the moment someone signs up.
+-- search_path is pinned to prevent search_path hijacking, and EXECUTE is
+-- revoked from PUBLIC so this can only run via the trigger below, not as a
+-- directly callable RPC.
 create or replace function handle_new_user()
 returns trigger as $$
 begin
@@ -26,7 +29,9 @@ begin
   values (new.id, 'free');
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
+
+revoke execute on function public.handle_new_user() from public;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
