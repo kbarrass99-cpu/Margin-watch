@@ -23,16 +23,17 @@ export default function Home() {
 
       <section className="max-w-4xl mx-auto text-center px-6 pt-16 pb-20">
         <div className="inline-flex items-center gap-2 text-xs font-medium bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full mb-6">
-          Built for AliExpress & dropshipping suppliers
+          Built for dropshipping suppliers
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-5">
-          Know the moment your supplier
-          <br className="hidden sm:block" /> changes the price.
+          Know the moment your
+          <br className="hidden sm:block" /> margin disappears.
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-10">
-          Paste your supplier product links. MarginWatch checks them automatically and emails
-          you the instant a price jumps, a product goes out of stock, or a variant disappears —
-          so you never sell at a stale price again.
+          Other tools just watch your supplier's price. MarginWatch knows what you actually
+          sell for — so it emails you the instant a supplier price hike eats into your margin,
+          a product goes out of stock, or a variant disappears. Never find out you've been
+          selling at a loss.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link
@@ -48,16 +49,16 @@ export default function Home() {
       <section className="max-w-5xl mx-auto px-6 pb-24 grid sm:grid-cols-3 gap-6">
         {[
           {
-            title: 'Paste a link',
-            body: 'Add any supplier product URL — no browser extension or store integration needed.',
+            title: 'Paste a link, add your price',
+            body: 'Add any supplier product URL and what you sell it for — no browser extension or store integration needed.',
           },
           {
-            title: 'We watch it for you',
-            body: 'MarginWatch checks price, stock, and variants on a schedule, around the clock.',
+            title: 'We watch your margin',
+            body: 'MarginWatch checks supplier price, stock, and variants on a schedule, and does the margin math for you.',
           },
           {
-            title: 'Get alerted instantly',
-            body: 'The moment something changes past your threshold, you get an email — before it costs you money.',
+            title: 'Get alerted before it costs you',
+            body: 'The moment your margin drops below the threshold you set — or stock changes — you get an email.',
           },
         ].map((f) => (
           <div key={f.title} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -68,7 +69,7 @@ export default function Home() {
       </section>
 
       <footer className="max-w-6xl mx-auto px-6 py-10 text-center text-xs text-slate-400">
-        MarginWatch — a simple price &amp; stock watcher for dropshippers.
+        MarginWatch — the only supplier watcher that tracks your actual profit margin.
       </footer>
     </main>
   );
