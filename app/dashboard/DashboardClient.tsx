@@ -21,6 +21,8 @@ type Product = {
   image_url: string | null;
   source_url: string;
   created_at: string;
+  sell_price: number | null;
+  margin_alert_percent: number;
   snapshots: Snapshot[];
 };
 

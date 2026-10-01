@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { assertPublicHttpUrl } from './urlSafety';
 
 export type ScrapeResult = {
   ok: boolean;
@@ -17,6 +18,8 @@ const USER_AGENT =
 
 export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   try {
+    await assertPublicHttpUrl(url);
+
     const res = await fetch(url, {
       headers: {
         'User-Agent': USER_AGENT,

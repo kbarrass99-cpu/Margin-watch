@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 export default function AddProductForm({ onAdded }: { onAdded: () => void }) {
   const [url, setUrl] = useState('');
+  const [sellPrice, setSellPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +16,7 @@ export default function AddProductForm({ onAdded }: { onAdded: () => void }) {
     const res = await fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_url: url }),
+      body: JSON.stringify({ source_url: url, sell_price: sellPrice || null }),
     });
     const data = await res.json();
     setLoading(false);
@@ -26,6 +27,7 @@ export default function AddProductForm({ onAdded }: { onAdded: () => void }) {
     }
 
     setUrl('');
+    setSellPrice('');
     onAdded();
   }
 
@@ -40,6 +42,15 @@ export default function AddProductForm({ onAdded }: { onAdded: () => void }) {
           onChange={(e) => setUrl(e.target.value)}
           className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Your sell price (optional)"
+          value={sellPrice}
+          onChange={(e) => setSellPrice(e.target.value)}
+          className="sm:w-48 rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
         <button
           type="submit"
           disabled={loading}
@@ -48,6 +59,9 @@ export default function AddProductForm({ onAdded }: { onAdded: () => void }) {
           {loading ? 'Adding…' : 'Track product'}
         </button>
       </div>
+      <p className="text-xs text-slate-400 mt-2">
+        Add your sell price to get margin alerts, not just price/stock alerts. You can set it later too.
+      </p>
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
     </form>
   );

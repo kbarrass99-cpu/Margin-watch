@@ -7,6 +7,8 @@ export type TrackedProduct = {
   image_url: string | null;
   is_active: boolean;
   alert_threshold_percent: number;
+  sell_price: number | null;
+  margin_alert_percent: number;
   created_at: string;
 };
 
@@ -23,7 +25,7 @@ export type Snapshot = {
 export type Alert = {
   id: string;
   tracked_product_id: string;
-  type: 'price_up' | 'price_down' | 'out_of_stock' | 'back_in_stock';
+  type: 'price_up' | 'price_down' | 'out_of_stock' | 'back_in_stock' | 'margin_below_threshold';
   message: string;
   created_at: string;
 };

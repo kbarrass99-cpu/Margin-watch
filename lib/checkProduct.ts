@@ -8,6 +8,8 @@ type ProductForCheck = {
   title: string | null;
   user_email: string;
   alert_threshold_percent: number;
+  sell_price?: number | null;
+  margin_alert_percent?: number;
 };
 
 // This runs the whole "check one product" pipeline:
@@ -54,7 +56,13 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
   }
 
   const messages: string[] = [];
-  let alertType: 'price_up' | 'price_down' | 'out_of_stock' | 'back_in_stock' | null = null;
+  let alertType:
+    | 'price_up'
+    | 'price_down'
+    | 'out_of_stock'
+    | 'back_in_stock'
+    | 'margin_below_threshold'
+    | null = null;
 
   if (prev.price != null && result.price != null && prev.price !== result.price) {
     const pctChange = ((result.price - prev.price) / prev.price) * 100;
@@ -74,6 +82,29 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
   } else if (prev.in_stock === false && result.inStock === true) {
     alertType = 'back_in_stock';
     messages.push('This product is back in stock.');
+  }
+
+  // Margin erosion: only fire the moment margin crosses the threshold
+  // (not on every check while it stays low), same edge-triggered pattern
+  // as the price/stock alerts above.
+  const sellPrice = product.sell_price;
+  const marginAlertPercent = product.margin_alert_percent ?? 20;
+  if (sellPrice != null && sellPrice > 0 && result.price != null) {
+    const marginPercent = ((sellPrice - result.price) / sellPrice) * 100;
+    const prevMarginPercent =
+      prev.price != null ? ((sellPrice - prev.price) / sellPrice) * 100 : null;
+
+    if (
+      marginPercent <= marginAlertPercent &&
+      (prevMarginPercent === null || prevMarginPercent > marginAlertPercent)
+    ) {
+      alertType = 'margin_below_threshold';
+      messages.push(
+        `Your margin on this product just dropped to ${marginPercent.toFixed(1)}% ` +
+          `(supplier price $${result.price.toFixed(2)} vs. your sell price $${sellPrice.toFixed(2)}) ` +
+          `- at or below your ${marginAlertPercent}% alert threshold.`
+      );
+    }
   }
 
   if (messages.length > 0 && alertType) {

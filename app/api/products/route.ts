@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkOneProduct } from '@/lib/checkProduct';
 import { PLAN_LIMITS } from '@/lib/stripe';
+import { assertPublicHttpUrl } from '@/lib/urlSafety';
 
 export async function GET() {
   const supabase = createClient();
@@ -32,9 +33,21 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const sourceUrl: string = (body.source_url || '').trim();
+  const sellPrice =
+    body.sell_price === '' || body.sell_price == null ? null : Number(body.sell_price);
 
   if (!sourceUrl || !sourceUrl.startsWith('http')) {
     return NextResponse.json({ error: 'Please provide a valid product URL' }, { status: 400 });
+  }
+
+  if (sellPrice !== null && (!Number.isFinite(sellPrice) || sellPrice < 0)) {
+    return NextResponse.json({ error: 'Sell price must be a positive number' }, { status: 400 });
+  }
+
+  try {
+    await assertPublicHttpUrl(sourceUrl);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
   const { data: profile } = await supabase
@@ -70,6 +83,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       user_email: user.email,
       source_url: sourceUrl,
+      sell_price: sellPrice,
     })
     .select()
     .single();

@@ -21,7 +21,7 @@ export async function sendAlertEmail(opts: {
       subject: `MarginWatch alert: ${opts.productTitle}`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px;">
-          <h2 style="margin-bottom: 4px;">Price/stock change detected</h2>
+          <h2 style="margin-bottom: 4px;">MarginWatch alert</h2>
           <p style="color:#334155;">${opts.message}</p>
           <p><a href="${opts.productUrl}" style="color:#4f46e5;">View the supplier page &rarr;</a></p>
           <p style="color:#94a3b8; font-size:12px; margin-top:24px;">

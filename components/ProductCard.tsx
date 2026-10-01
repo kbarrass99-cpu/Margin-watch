@@ -17,6 +17,8 @@ type Product = {
   title: string | null;
   image_url: string | null;
   source_url: string;
+  sell_price: number | null;
+  margin_alert_percent: number;
   snapshots: Snapshot[];
 };
 
@@ -28,6 +30,8 @@ export default function ProductCard({
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [editingSellPrice, setEditingSellPrice] = useState(false);
+  const [sellPriceInput, setSellPriceInput] = useState(product.sell_price?.toString() ?? '');
 
   const sorted = [...product.snapshots].sort(
     (a, b) => new Date(a.checked_at).getTime() - new Date(b.checked_at).getTime()
@@ -53,6 +57,28 @@ export default function ProductCard({
     await fetch(`/api/products/${product.id}`, { method: 'DELETE' });
     onChanged();
   }
+
+  async function handleSaveSellPrice() {
+    setBusy(true);
+    await fetch(`/api/products/${product.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sell_price: sellPriceInput || null }),
+    });
+    setBusy(false);
+    setEditingSellPrice(false);
+    onChanged();
+  }
+
+  const marginPercent =
+    product.sell_price != null && product.sell_price > 0 && latest?.price != null
+      ? ((product.sell_price - latest.price) / product.sell_price) * 100
+      : null;
+  const marginDollar =
+    product.sell_price != null && latest?.price != null
+      ? product.sell_price - latest.price
+      : null;
+  const marginAtRisk = marginPercent != null && marginPercent <= product.margin_alert_percent;
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
@@ -101,6 +127,57 @@ export default function ProductCard({
         </div>
         <Sparkline data={sorted.map((s) => s.price ?? 0)} />
       </div>
+
+      {editingSellPrice ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            autoFocus
+            placeholder="Your sell price"
+            value={sellPriceInput}
+            onChange={(e) => setSellPriceInput(e.target.value)}
+            className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            onClick={handleSaveSellPrice}
+            disabled={busy}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setEditingSellPrice(false)}
+            className="text-xs font-medium text-slate-400 hover:text-slate-600"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : marginPercent !== null ? (
+        <div
+          className={`flex items-center justify-between text-xs font-medium rounded-lg px-2 py-1.5 ${
+            marginAtRisk ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'
+          }`}
+        >
+          <span>
+            Margin: ${marginDollar!.toFixed(2)} ({marginPercent.toFixed(1)}%)
+          </span>
+          <button
+            onClick={() => setEditingSellPrice(true)}
+            className="underline decoration-dotted underline-offset-2"
+          >
+            Edit
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setEditingSellPrice(true)}
+          className="text-xs text-left font-medium text-indigo-600 hover:text-indigo-800"
+        >
+          Set your sell price to track margin →
+        </button>
+      )}
 
       <div className="text-xs text-slate-400">
         {latest
