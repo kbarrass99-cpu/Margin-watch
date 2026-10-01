@@ -1,7 +1,10 @@
 # MarginWatch
 
 Track your dropshipping supplier's product pages and get an email alert the
-moment the price changes, a product goes out of stock, or comes back in stock.
+moment the price changes, a product goes out of stock, comes back in stock,
+or your profit margin drops below a threshold you set (enter what you sell
+the product for, and MarginWatch alerts you when a supplier price hike eats
+into your margin — not just when the raw price moves).
 
 **If you have zero coding experience, start with `DEPLOYMENT_GUIDE.md`** — it
 walks through getting this live on the internet for free, step by step,
@@ -14,6 +17,8 @@ using only web dashboards (no software to install, no command line).
 - `lib/` — the actual logic: the scraper, the email sender, the Supabase
   database connections
 - `supabase/schema.sql` — the database structure, run this once in Supabase
+- `supabase/schema-margin.sql` — adds sell price + margin alert threshold,
+  run this once too (after `schema.sql`)
 - `.github/workflows/cron.yml` — the free scheduler that checks all products
   automatically every 6 hours
 
