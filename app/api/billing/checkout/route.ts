@@ -17,9 +17,16 @@ export async function POST() {
   // otherwise Stripe creates a fresh one during checkout.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_customer_id')
+    .select('plan, stripe_customer_id')
     .eq('id', user.id)
     .single();
+
+  if (profile?.plan === 'pro') {
+    return NextResponse.json(
+      { error: 'You already have Pro. Use "Manage billing" to change or cancel it.' },
+      { status: 409 }
+    );
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',

@@ -1,8 +1,9 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// Use this ONLY inside the cron endpoint. It uses the secret service-role
-// key, which can read/write every user's data - never expose it to the
-// browser and never use it in a route that a logged-in user calls directly.
+// Use this ONLY in server routes no user calls directly (the cron endpoint
+// and the signature-verified Stripe webhook). It uses the secret
+// service-role key, which can read/write every user's data - never expose
+// it to the browser.
 export function createAdminClient() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
