@@ -19,7 +19,27 @@ const USER_AGENT =
 export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   try {
     await assertPublicHttpUrl(url);
+  } catch (err: any) {
+    return { ok: false, rawStatus: err?.message || 'This URL is not allowed' };
+  }
 
+  const direct = await fetchDirect(url);
+  if (direct.ok) return direct;
+
+  // Many suppliers (AliExpress in particular) block plain server-side
+  // fetches outright. If a Firecrawl key is configured, retry through it -
+  // it renders a real browser session, which gets past basic blocks (though
+  // not every anti-bot challenge, e.g. an interactive CAPTCHA).
+  if (process.env.FIRECRAWL_API_KEY) {
+    const viaFirecrawl = await fetchViaFirecrawl(url);
+    if (viaFirecrawl) return viaFirecrawl;
+  }
+
+  return direct;
+}
+
+async function fetchDirect(url: string): Promise<ScrapeResult> {
+  try {
     const res = await fetch(url, {
       headers: {
         'User-Agent': USER_AGENT,
@@ -35,46 +55,81 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
       return { ok: false, rawStatus: `Fetch failed with status ${res.status}` };
     }
 
-    const html = await res.text();
-    const $ = cheerio.load(html);
-
-    // Strategy 1: schema.org structured product data. Most e-commerce
-    // platforms (including AliExpress product pages) embed this, and it's
-    // far more stable than parsing the visual page layout.
-    const ldJsonResult = parseLdJson($);
-    if (ldJsonResult) return ldJsonResult;
-
-    // Strategy 2: fall back to Open Graph tags + a loose price pattern
-    // search across the raw page source.
-    const ogTitle = $('meta[property="og:title"]').attr('content');
-    const ogImage = $('meta[property="og:image"]').attr('content');
-    const priceMatch = html.match(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/i);
-    const stockMatch = html.match(/"availability"\s*:\s*"[^"]*(InStock|OutOfStock)[^"]*"/i);
-
-    if (priceMatch) {
-      return {
-        ok: true,
-        title: ogTitle,
-        imageUrl: ogImage,
-        price: parseFloat(priceMatch[1]),
-        inStock: stockMatch ? stockMatch[1] === 'InStock' : undefined,
-        rawStatus: 'Parsed via fallback pattern match',
-      };
-    }
-
-    return {
-      ok: false,
-      title: ogTitle,
-      imageUrl: ogImage,
-      rawStatus:
-        'Could not find price data on this page. The site may have changed its layout or blocked the request.',
-    };
+    return parseProductHtml(await res.text());
   } catch (err: any) {
     return {
       ok: false,
       rawStatus: `Error fetching page: ${err?.message || 'unknown error'}`,
     };
   }
+}
+
+async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
+  try {
+    const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        formats: ['rawHtml'],
+        proxy: 'stealth',
+        location: { country: 'US' },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!res.ok) return null;
+
+    const body = await res.json();
+    const html = body?.data?.rawHtml;
+    if (!html) return null;
+
+    const result = parseProductHtml(html);
+    if (!result.ok) return null;
+
+    return { ...result, rawStatus: `${result.rawStatus} (via Firecrawl fallback)` };
+  } catch {
+    return null;
+  }
+}
+
+function parseProductHtml(html: string): ScrapeResult {
+  const $ = cheerio.load(html);
+
+  // Strategy 1: schema.org structured product data. Most e-commerce
+  // platforms embed this, and it's far more stable than parsing the
+  // visual page layout.
+  const ldJsonResult = parseLdJson($);
+  if (ldJsonResult) return ldJsonResult;
+
+  // Strategy 2: fall back to Open Graph tags + a loose price pattern
+  // search across the raw page source.
+  const ogTitle = $('meta[property="og:title"]').attr('content');
+  const ogImage = $('meta[property="og:image"]').attr('content');
+  const priceMatch = html.match(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/i);
+  const stockMatch = html.match(/"availability"\s*:\s*"[^"]*(InStock|OutOfStock)[^"]*"/i);
+
+  if (priceMatch) {
+    return {
+      ok: true,
+      title: ogTitle,
+      imageUrl: ogImage,
+      price: parseFloat(priceMatch[1]),
+      inStock: stockMatch ? stockMatch[1] === 'InStock' : undefined,
+      rawStatus: 'Parsed via fallback pattern match',
+    };
+  }
+
+  return {
+    ok: false,
+    title: ogTitle,
+    imageUrl: ogImage,
+    rawStatus:
+      'Could not find price data on this page. The site may have changed its layout or blocked the request.',
+  };
 }
 
 function parseLdJson($: cheerio.CheerioAPI): ScrapeResult | null {
