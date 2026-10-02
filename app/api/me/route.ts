@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PLAN_LIMITS } from '@/lib/stripe';
+import { planFor, PLANS } from '@/lib/plans';
 
 export async function GET() {
   const supabase = createClient();
@@ -16,11 +16,11 @@ export async function GET() {
     .eq('id', user.id)
     .single();
 
-  const plan = profile?.plan || 'free';
+  const plan = planFor(profile?.plan);
 
   return NextResponse.json({
     email: user.email,
     plan,
-    limit: PLAN_LIMITS[plan] ?? PLAN_LIMITS.free,
+    limit: PLANS[plan].productLimit,
   });
 }

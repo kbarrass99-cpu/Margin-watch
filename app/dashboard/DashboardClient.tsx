@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import AddProductForm from '@/components/AddProductForm';
 import ProductCard from '@/components/ProductCard';
+import PricingTable from '@/components/PricingTable';
+import { PLANS, type PaidPlanId, type PlanId } from '@/lib/plans';
 
 type Snapshot = {
   id: string;
@@ -28,7 +30,7 @@ type Product = {
 
 type Me = {
   email: string;
-  plan: 'free' | 'pro';
+  plan: PlanId;
   limit: number;
 };
 
@@ -39,6 +41,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   const [error, setError] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState(false);
   const [justUpgraded, setJustUpgraded] = useState(false);
+  const [showPlans, setShowPlans] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -78,11 +81,15 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
     router.refresh();
   }
 
-  async function openBillingPage(endpoint: string) {
+  async function openBillingPage(endpoint: string, body?: object) {
     setBillingBusy(true);
     setError(null);
     try {
-      const res = await fetch(endpoint, { method: 'POST' });
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
       const data = await res.json().catch(() => ({}));
       if (data.url) {
         window.location.href = data.url;
@@ -95,12 +102,14 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
     setBillingBusy(false);
   }
 
-  const handleUpgrade = () => openBillingPage('/api/billing/checkout');
+  const handleChoosePlan = (plan: PaidPlanId) => openBillingPage('/api/billing/checkout', { plan });
   const handleManageBilling = () => openBillingPage('/api/billing/portal');
 
-  const limit = me?.limit ?? 5;
-  const isPro = me?.plan === 'pro';
+  const plan: PlanId = me?.plan ?? 'free';
+  const limit = me?.limit ?? PLANS.free.productLimit;
+  const isPaid = plan !== 'free';
   const atLimit = products.length >= limit;
+  const pickerOpen = !isPaid && (showPlans || atLimit);
 
   return (
     <main className="min-h-screen">
@@ -109,15 +118,15 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
           <div className="flex items-center gap-2 font-semibold">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
             MarginWatch
-            {isPro && (
+            {isPaid && (
               <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full ml-1">
-                Pro
+                {PLANS[plan].name}
               </span>
             )}
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-500 hidden sm:inline">{userEmail}</span>
-            {isPro ? (
+            {isPaid ? (
               <button
                 onClick={handleManageBilling}
                 disabled={billingBusy}
@@ -127,9 +136,8 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
               </button>
             ) : (
               <button
-                onClick={handleUpgrade}
-                disabled={billingBusy}
-                className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+                onClick={() => setShowPlans((open) => !open)}
+                className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700 transition"
               >
                 Upgrade
               </button>
@@ -147,34 +155,62 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
       <div className="max-w-6xl mx-auto px-6 py-10">
         {justUpgraded && (
           <div className="mb-6 text-sm bg-emerald-50 text-emerald-700 rounded-lg px-4 py-3">
-            You&apos;re on Pro now — thanks for upgrading! It may take a few seconds to reflect below.
+            Thanks for upgrading! Your new plan may take a few seconds to show up below.
           </div>
+        )}
+
+        {pickerOpen && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold">
+                {atLimit
+                  ? `You've reached the Free plan limit of ${limit} product. Pick a plan to track more.`
+                  : 'Choose a plan'}
+              </h2>
+              {!atLimit && (
+                <button
+                  onClick={() => setShowPlans(false)}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  Close
+                </button>
+              )}
+            </div>
+            <PricingTable currentPlan={plan} onChoose={handleChoosePlan} busy={billingBusy} />
+          </section>
         )}
 
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Tracked products</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {products.length} of {limit} {isPro ? 'Pro' : 'free'} products tracked
+              {products.length} of {limit} tracked on the {PLANS[plan].name} plan
             </p>
           </div>
         </div>
 
         <AddProductForm onAdded={loadProducts} />
 
-        {atLimit && !isPro && (
+        {atLimit && plan === 'starter' && (
           <div className="mt-4 flex items-center justify-between bg-indigo-50 rounded-2xl px-5 py-4">
             <p className="text-sm text-indigo-900">
-              You&apos;ve hit the free plan limit. Upgrade to Pro for up to {' '}
-              {50} tracked products.
+              You&apos;ve reached the Starter limit of {limit} products. Switch to Pro for up to{' '}
+              {PLANS.pro.productLimit} for ${PLANS.pro.monthlyPrice}/month.
             </p>
             <button
-              onClick={handleUpgrade}
+              onClick={handleManageBilling}
               disabled={billingBusy}
               className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 whitespace-nowrap ml-4"
             >
-              {billingBusy ? 'Loading…' : 'Upgrade to Pro'}
+              {billingBusy ? 'Loading…' : 'Switch to Pro'}
             </button>
+          </div>
+        )}
+
+        {atLimit && plan === 'pro' && (
+          <div className="mt-4 text-sm bg-slate-100 text-slate-700 rounded-2xl px-5 py-4">
+            You&apos;re tracking the maximum of {limit} products on Pro. Remove a product to add
+            another.
           </div>
         )}
 

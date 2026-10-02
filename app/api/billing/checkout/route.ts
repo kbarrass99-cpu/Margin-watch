@@ -1,15 +1,29 @@
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
-import { getStripe } from '@/lib/stripe';
+import { getStripe, priceIdForPlan } from '@/lib/stripe';
+import { isPaidPlan, PLANS } from '@/lib/plans';
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
+  if (!isPaidPlan(body.plan)) {
+    return NextResponse.json({ error: 'Please choose a plan.' }, { status: 400 });
+  }
+  const priceId = priceIdForPlan(body.plan);
+  if (!priceId) {
+    Sentry.captureMessage(`Missing Stripe price env var for plan ${body.plan}`, 'error');
+    return NextResponse.json(
+      { error: "We couldn't open checkout right now. Please try again in a minute." },
+      { status: 500 }
+    );
+  }
 
   const stripe = getStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -22,9 +36,13 @@ export async function POST() {
     .eq('id', user.id)
     .single();
 
-  if (profile?.plan === 'pro') {
+  // Switching between paid plans goes through the billing portal, which
+  // updates the existing subscription instead of starting a second one.
+  if (isPaidPlan(profile?.plan)) {
     return NextResponse.json(
-      { error: 'You already have Pro. Use "Manage billing" to change or cancel it.' },
+      {
+        error: `You're already on ${PLANS[profile.plan].name}. Use "Manage billing" to switch plans or cancel.`,
+      },
       { status: 409 }
     );
   }
@@ -34,7 +52,7 @@ export async function POST() {
       mode: 'subscription',
       customer: profile?.stripe_customer_id || undefined,
       customer_email: profile?.stripe_customer_id ? undefined : user.email,
-      line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO!, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appUrl}/dashboard?upgraded=1`,
       cancel_url: `${appUrl}/dashboard`,
       // This is how the webhook knows which Supabase user just paid.
