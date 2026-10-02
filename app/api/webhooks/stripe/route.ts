@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import type Stripe from 'stripe';
-import { getStripe } from '@/lib/stripe';
+import { getStripe, planForPriceId } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { PlanId } from '@/lib/plans';
 
-// past_due keeps Pro so Stripe's automatic retries have time to recover a
-// failed renewal before the customer loses access.
-const PRO_STATUSES: Stripe.Subscription.Status[] = ['active', 'trialing', 'past_due'];
+// past_due keeps the paid plan so Stripe's automatic retries have time to
+// recover a failed renewal before the customer loses access.
+const ACTIVE_STATUSES: Stripe.Subscription.Status[] = ['active', 'trialing', 'past_due'];
 
 export async function POST(request: Request) {
   const stripe = getStripe();
@@ -65,13 +66,25 @@ async function syncSubscription(stripe: Stripe, subscriptionId: string) {
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const customerId = idOf(subscription.customer)!;
   const userId = subscription.metadata?.supabase_user_id;
-  const isPro = PRO_STATUSES.includes(subscription.status);
+  const isActive = ACTIVE_STATUSES.includes(subscription.status);
+
+  let plan: PlanId = 'free';
+  if (isActive) {
+    const priceId = subscription.items.data[0]?.price.id;
+    const paidPlan = planForPriceId(priceId);
+    if (!paidPlan) {
+      // Don't under-serve a paying customer over a config mismatch - give
+      // them the top tier and flag it so the price env vars get fixed.
+      Sentry.captureMessage(`Unrecognised Stripe price ${priceId} on ${subscription.id}`, 'warning');
+    }
+    plan = paidPlan ?? 'pro';
+  }
 
   const supabase = createAdminClient();
   let query = supabase
     .from('profiles')
     .update({
-      plan: isPro ? 'pro' : 'free',
+      plan,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       updated_at: new Date().toISOString(),
@@ -82,7 +95,7 @@ async function syncSubscription(stripe: Stripe, subscriptionId: string) {
   // Only downgrade if this is the subscription the profile currently points
   // at - otherwise a late event for an old, cancelled subscription could
   // wipe out a newer active one.
-  if (!isPro) query = query.eq('stripe_subscription_id', subscription.id);
+  if (!isActive) query = query.eq('stripe_subscription_id', subscription.id);
 
   const { error } = await query;
   if (error) throw error;

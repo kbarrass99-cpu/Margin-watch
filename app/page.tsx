@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import PricingTable from '@/components/PricingTable';
 
 export default function Home() {
   return (
@@ -43,7 +44,7 @@ export default function Home() {
             Start tracking for free
           </Link>
         </div>
-        <p className="text-sm text-slate-400 mt-4">Free for up to 5 products. No credit card.</p>
+        <p className="text-sm text-slate-400 mt-4">Free for 1 product. No credit card.</p>
       </section>
 
       <section className="max-w-5xl mx-auto px-6 pb-24 grid sm:grid-cols-3 gap-6">
@@ -66,6 +67,14 @@ export default function Home() {
             <p className="text-sm text-slate-600">{f.body}</p>
           </div>
         ))}
+      </section>
+
+      <section id="pricing" className="max-w-5xl mx-auto px-6 pb-24">
+        <h2 className="text-2xl font-bold text-center mb-2">Simple pricing</h2>
+        <p className="text-center text-slate-600 mb-10">
+          Start free with one product. Upgrade when you&apos;re tracking more.
+        </p>
+        <PricingTable />
       </section>
 
       <footer className="max-w-6xl mx-auto px-6 py-10 text-center text-xs text-slate-400">
