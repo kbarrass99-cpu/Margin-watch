@@ -78,21 +78,25 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
     router.refresh();
   }
 
-  async function handleUpgrade() {
+  async function openBillingPage(endpoint: string) {
     setBillingBusy(true);
-    const res = await fetch('/api/billing/checkout', { method: 'POST' });
-    const data = await res.json();
+    setError(null);
+    try {
+      const res = await fetch(endpoint, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError(data.error || 'Something went wrong opening billing. Please try again.');
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
+    }
     setBillingBusy(false);
-    if (data.url) window.location.href = data.url;
   }
 
-  async function handleManageBilling() {
-    setBillingBusy(true);
-    const res = await fetch('/api/billing/portal', { method: 'POST' });
-    const data = await res.json();
-    setBillingBusy(false);
-    if (data.url) window.location.href = data.url;
-  }
+  const handleUpgrade = () => openBillingPage('/api/billing/checkout');
+  const handleManageBilling = () => openBillingPage('/api/billing/portal');
 
   const limit = me?.limit ?? 5;
   const isPro = me?.plan === 'pro';
