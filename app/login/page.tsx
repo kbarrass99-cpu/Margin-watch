@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -10,7 +10,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'warn'; text: string } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('confirmed') === '1') {
+      setNotice({ kind: 'ok', text: 'Your email is confirmed. Log in to get started.' });
+    } else if (params.get('link') === 'expired') {
+      setNotice({
+        kind: 'warn',
+        text: 'That confirmation link has already been used or has expired. If you already confirmed your email, just log in.',
+      });
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +59,15 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4"
         >
+          {notice && !error && (
+            <div
+              className={`text-sm rounded-lg px-3 py-2 ${
+                notice.kind === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+              }`}
+            >
+              {notice.text}
+            </div>
+          )}
           {error && (
             <div className="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</div>
           )}
