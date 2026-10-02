@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe';
 
@@ -23,10 +24,18 @@ export async function POST() {
   const stripe = getStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
-    return_url: `${appUrl}/dashboard`,
-  });
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${appUrl}/dashboard`,
+    });
 
-  return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    Sentry.captureException(err, { extra: { userId: user.id } });
+    return NextResponse.json(
+      { error: "We couldn't open billing settings right now. Please try again in a minute." },
+      { status: 502 }
+    );
+  }
 }

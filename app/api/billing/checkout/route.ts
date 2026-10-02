@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/lib/stripe';
 
@@ -28,20 +29,28 @@ export async function POST() {
     );
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: profile?.stripe_customer_id || undefined,
-    customer_email: profile?.stripe_customer_id ? undefined : user.email,
-    line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO!, quantity: 1 }],
-    success_url: `${appUrl}/dashboard?upgraded=1`,
-    cancel_url: `${appUrl}/dashboard`,
-    // This is how the webhook knows which Supabase user just paid.
-    client_reference_id: user.id,
-    metadata: { supabase_user_id: user.id },
-    subscription_data: {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: profile?.stripe_customer_id || undefined,
+      customer_email: profile?.stripe_customer_id ? undefined : user.email,
+      line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO!, quantity: 1 }],
+      success_url: `${appUrl}/dashboard?upgraded=1`,
+      cancel_url: `${appUrl}/dashboard`,
+      // This is how the webhook knows which Supabase user just paid.
+      client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },
-    },
-  });
+      subscription_data: {
+        metadata: { supabase_user_id: user.id },
+      },
+    });
 
-  return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    Sentry.captureException(err, { extra: { userId: user.id } });
+    return NextResponse.json(
+      { error: "We couldn't open checkout right now. Please try again in a minute." },
+      { status: 502 }
+    );
+  }
 }
