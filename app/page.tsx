@@ -18,9 +18,9 @@ export default function Home() {
             Know the moment your margin disappears.
           </h1>
           <p className="mt-6 text-base text-zinc-600 leading-relaxed max-w-[52ch]">
-            Other tools only watch your supplier&apos;s price. MarginCanary also knows what you sell
-            for, so it emails you the moment a price hike eats into your margin, a product goes out
-            of stock, or a variant disappears.
+            A price tracker tells you the price changed. MarginCanary also knows what you sell for,
+            so it emails you when a price hike eats into your margin, a product goes out of stock, or
+            a variant disappears.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
             <MagneticLink

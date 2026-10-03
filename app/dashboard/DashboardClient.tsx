@@ -8,6 +8,7 @@ import AddProductForm from '@/components/AddProductForm';
 import PricingTable from '@/components/PricingTable';
 import Logo from '@/components/Logo';
 import ProductRow from '@/components/dashboard/ProductRow';
+import DeleteAccount from '@/components/dashboard/DeleteAccount';
 import { FirstProductState, ProductTableSkeleton } from '@/components/dashboard/DashboardStates';
 import { summarize, type ProductWithSnapshots } from '@/lib/margin';
 import { PLANS, type PaidPlanId, type PlanId } from '@/lib/plans';
@@ -269,6 +270,12 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
               </p>
             )}
           </>
+        )}
+
+        {!loading && (
+          <div className="mt-16 border-t border-zinc-200 pt-6">
+            <DeleteAccount isPaid={isPaid} />
+          </div>
         )}
       </div>
     </main>

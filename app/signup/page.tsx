@@ -113,6 +113,17 @@ export default function SignupPage() {
         </Field>
 
         <SubmitButton loading={loading} idle="Create free account" busy="Creating account…" />
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          By creating an account you agree to our{' '}
+          <Link href="/terms" className="underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </form>
     </AuthShell>
   );

@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { SITE } from './site';
 
 export async function sendAlertEmail(opts: {
   to: string;
@@ -24,8 +25,13 @@ export async function sendAlertEmail(opts: {
           <h2 style="margin-bottom: 4px;">MarginCanary alert</h2>
           <p style="color:#3f3f46;">${opts.message}</p>
           <p><a href="${opts.productUrl}" style="color:#2348d8;">View the supplier page</a></p>
-          <p style="color:#a1a1aa; font-size:12px; margin-top:24px;">
-            You're receiving this because you're tracking this product on MarginCanary.
+          <p style="color:#a1a1aa; font-size:12px; margin-top:24px; line-height:1.5;">
+            You're receiving this because you're tracking this product on ${SITE.name}.
+            To change your alerts or stop tracking it, open your
+            <a href="${SITE.url}/dashboard" style="color:#71717a;">dashboard</a>.<br />
+            ${SITE.operatorName ? `${SITE.name} (${SITE.operatorName})` : SITE.name} &middot;
+            <a href="mailto:${SITE.supportEmail}" style="color:#71717a;">${SITE.supportEmail}</a> &middot;
+            <a href="${SITE.url}/privacy" style="color:#71717a;">Privacy</a>
           </p>
         </div>
       `,
