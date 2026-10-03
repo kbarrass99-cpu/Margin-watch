@@ -22,9 +22,9 @@ export async function sendAlertEmail(opts: {
       html: `
         <div style="font-family: sans-serif; max-width: 480px;">
           <h2 style="margin-bottom: 4px;">MarginCanary alert</h2>
-          <p style="color:#334155;">${opts.message}</p>
-          <p><a href="${opts.productUrl}" style="color:#4f46e5;">View the supplier page &rarr;</a></p>
-          <p style="color:#94a3b8; font-size:12px; margin-top:24px;">
+          <p style="color:#3f3f46;">${opts.message}</p>
+          <p><a href="${opts.productUrl}" style="color:#2348d8;">View the supplier page</a></p>
+          <p style="color:#a1a1aa; font-size:12px; margin-top:24px;">
             You're receiving this because you're tracking this product on MarginCanary.
           </p>
         </div>

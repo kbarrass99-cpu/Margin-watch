@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CheckCircle, Info } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
+import AuthShell from '@/components/auth/AuthShell';
+import Field, { inputClass } from '@/components/auth/Field';
+import SubmitButton from '@/components/auth/SubmitButton';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -45,71 +49,62 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 font-semibold text-lg mb-2">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-            MarginCanary
-          </div>
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4"
-        >
-          {notice && !error && (
-            <div
-              className={`text-sm rounded-lg px-3 py-2 ${
-                notice.kind === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-              }`}
-            >
-              {notice.text}
-            </div>
-          )}
-          {error && (
-            <div className="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</div>
-          )}
-
-          <div>
-            <label className="text-sm font-medium text-slate-700">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Signing in…' : 'Log in'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-slate-500 mt-6">
-          No account?{' '}
-          <Link href="/signup" className="text-indigo-600 font-medium">
-            Sign up free
+    <AuthShell
+      title="Log in"
+      subtitle="Check on your products and margins."
+      footer={
+        <>
+          No account yet?{' '}
+          <Link href="/signup" className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4">
+            Create one free
           </Link>
-        </p>
-      </div>
-    </main>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {notice && !error && (
+          <div
+            className={`flex gap-2.5 text-sm leading-relaxed ${
+              notice.kind === 'ok' ? 'text-emerald-700' : 'text-amber-700'
+            }`}
+          >
+            {notice.kind === 'ok' ? (
+              <CheckCircle size={18} weight="bold" className="mt-0.5 shrink-0" />
+            ) : (
+              <Info size={18} weight="bold" className="mt-0.5 shrink-0" />
+            )}
+            {notice.text}
+          </div>
+        )}
+
+        <Field id="email" label="Email">
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field id="password" label="Password" error={error}>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'password-error' : undefined}
+            className={inputClass}
+          />
+        </Field>
+
+        <SubmitButton loading={loading} idle="Log in" busy="Logging in…" />
+      </form>
+    </AuthShell>
   );
 }

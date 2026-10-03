@@ -1,32 +1,16 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import AddProductForm from '@/components/AddProductForm';
-import ProductCard from '@/components/ProductCard';
 import PricingTable from '@/components/PricingTable';
+import Logo from '@/components/Logo';
+import ProductRow from '@/components/dashboard/ProductRow';
+import { FirstProductState, ProductTableSkeleton } from '@/components/dashboard/DashboardStates';
+import { summarize, type ProductWithSnapshots } from '@/lib/margin';
 import { PLANS, type PaidPlanId, type PlanId } from '@/lib/plans';
-
-type Snapshot = {
-  id: string;
-  price: number | null;
-  currency: string | null;
-  in_stock: boolean | null;
-  raw_status: string;
-  checked_at: string;
-};
-
-type Product = {
-  id: string;
-  title: string | null;
-  image_url: string | null;
-  source_url: string;
-  created_at: string;
-  sell_price: number | null;
-  margin_alert_percent: number;
-  snapshots: Snapshot[];
-};
 
 type Me = {
   email: string;
@@ -35,7 +19,7 @@ type Me = {
 };
 
 export default function DashboardClient({ userEmail }: { userEmail: string }) {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithSnapshots[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,22 +35,21 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   }, []);
 
   const loadProducts = useCallback(async () => {
-    setLoading(true);
-    const [productsRes, meRes] = await Promise.all([
-      fetch('/api/products'),
-      fetch('/api/me'),
-    ]);
-    const productsData = await productsRes.json();
-    const meData = await meRes.json();
+    try {
+      const [productsRes, meRes] = await Promise.all([fetch('/api/products'), fetch('/api/me')]);
+      const productsData = await productsRes.json().catch(() => ({}));
+      const meData = await meRes.json().catch(() => null);
 
-    if (productsRes.ok) {
-      setProducts(productsData.products || []);
-      setError(null);
-    } else {
-      setError(productsData.error || 'Failed to load products');
+      if (productsRes.ok) {
+        setProducts(productsData.products || []);
+        setError(null);
+      } else {
+        setError(productsData.error || 'Your products could not be loaded. Refresh the page to try again.');
+      }
+      if (meRes.ok && meData) setMe(meData);
+    } catch {
+      setError('Could not reach the server. Check your connection, then refresh the page.');
     }
-    if (meRes.ok) setMe(meData);
-
     setLoading(false);
   }, []);
 
@@ -111,67 +94,81 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   const atLimit = products.length >= limit;
   const pickerOpen = !isPaid && (showPlans || atLimit);
 
+  // Riskiest first: lowest margin at the top, products without a sell price last.
+  const rows = useMemo(() => {
+    return products
+      .map((p) => ({ product: p, ...summarize(p) }))
+      .sort((a, b) => {
+        if (a.margin == null && b.margin == null) return 0;
+        if (a.margin == null) return 1;
+        if (b.margin == null) return -1;
+        return a.margin - b.margin;
+      });
+  }, [products]);
+  const atRiskCount = rows.filter((r) => r.atRisk).length;
+  const outOfStockCount = rows.filter((r) => r.latest?.in_stock === false).length;
+  const missingSellPrice = rows.filter((r) => r.product.sell_price == null).length;
+
+  const isFirstRun = !loading && !error && products.length === 0;
+
   return (
-    <main className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2 font-semibold">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-            MarginCanary
+    <main className="min-h-[100dvh]">
+      <header className="border-b border-zinc-200 bg-white">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-3">
+            <Logo href="/dashboard" />
             {isPaid && (
-              <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full ml-1">
+              <span className="rounded border border-zinc-200 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600">
                 {PLANS[plan].name}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-500 hidden sm:inline">{userEmail}</span>
+          <div className="flex items-center gap-1 text-sm">
+            <span className="text-zinc-400 hidden md:inline mr-3">{userEmail}</span>
             {isPaid ? (
               <button
+                type="button"
                 onClick={handleManageBilling}
                 disabled={billingBusy}
-                className="text-slate-600 hover:text-slate-900 font-medium disabled:opacity-50"
+                className="px-2.5 py-1.5 text-zinc-600 hover:text-zinc-900 disabled:opacity-50"
               >
-                Manage billing
+                Billing
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => setShowPlans((open) => !open)}
-                className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700 transition"
+                className="px-2.5 py-1.5 font-medium text-accent hover:text-accent-hover"
+                aria-expanded={pickerOpen}
               >
                 Upgrade
               </button>
             )}
-            <button
-              onClick={handleSignOut}
-              className="text-slate-600 hover:text-slate-900 font-medium"
-            >
+            <button type="button" onClick={handleSignOut} className="px-2.5 py-1.5 text-zinc-600 hover:text-zinc-900">
               Sign out
             </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {justUpgraded && (
-          <div className="mb-6 text-sm bg-emerald-50 text-emerald-700 rounded-lg px-4 py-3">
-            Thanks for upgrading! Your new plan may take a few seconds to show up below.
-          </div>
+          <p className="mb-6 flex items-center gap-2 text-sm text-emerald-700">
+            <CheckCircle size={16} weight="bold" />
+            Thanks for upgrading. Your new plan can take a few seconds to show up.
+          </p>
         )}
 
         {pickerOpen && (
-          <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">
+          <section className="mb-10">
+            <div className="flex items-baseline justify-between gap-4 mb-4">
+              <h2 className="font-medium">
                 {atLimit
                   ? `You've reached the Free plan limit of ${limit} product. Pick a plan to track more.`
                   : 'Choose a plan'}
               </h2>
               {!atLimit && (
-                <button
-                  onClick={() => setShowPlans(false)}
-                  className="text-sm text-slate-500 hover:text-slate-700"
-                >
+                <button type="button" onClick={() => setShowPlans(false)} className="text-sm text-zinc-500 hover:text-zinc-900">
                   Close
                 </button>
               )}
@@ -180,59 +177,98 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
           </section>
         )}
 
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Tracked products</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {products.length} of {limit} tracked on the {PLANS[plan].name} plan
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
+          <h1 className="text-xl font-semibold tracking-tight">Tracked products</h1>
+          {!loading && products.length > 0 && (
+            <p className="text-sm text-zinc-500">
+              <span className={atRiskCount > 0 ? 'font-medium text-red-600' : ''}>
+                <span className="font-mono">{atRiskCount}</span> of <span className="font-mono">{products.length}</span> below
+                their margin line
+              </span>
+              {outOfStockCount > 0 && (
+                <>
+                  {' · '}
+                  <span className="text-amber-700">
+                    <span className="font-mono">{outOfStockCount}</span> out of stock
+                  </span>
+                </>
+              )}
+              {' · '}
+              <span className="font-mono">{products.length}</span>/<span className="font-mono">{limit}</span> on{' '}
+              {PLANS[plan].name}
             </p>
-          </div>
+          )}
         </div>
 
-        <AddProductForm onAdded={loadProducts} />
-
-        {atLimit && plan === 'starter' && (
-          <div className="mt-4 flex items-center justify-between bg-indigo-50 rounded-2xl px-5 py-4">
-            <p className="text-sm text-indigo-900">
-              You&apos;ve reached the Starter limit of {limit} products. Switch to Pro for up to{' '}
-              {PLANS.pro.productLimit} for ${PLANS.pro.monthlyPrice}/month.
-            </p>
-            <button
-              onClick={handleManageBilling}
-              disabled={billingBusy}
-              className="bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 whitespace-nowrap ml-4"
-            >
-              {billingBusy ? 'Loading…' : 'Switch to Pro'}
-            </button>
-          </div>
-        )}
-
-        {atLimit && plan === 'pro' && (
-          <div className="mt-4 text-sm bg-slate-100 text-slate-700 rounded-2xl px-5 py-4">
-            You&apos;re tracking the maximum of {limit} products on Pro. Remove a product to add
-            another.
-          </div>
-        )}
-
         {error && (
-          <div className="mt-6 text-sm bg-red-50 text-red-700 rounded-lg px-4 py-3">{error}</div>
+          <p role="alert" className="mt-6 flex items-start gap-2 text-sm text-red-700">
+            <WarningCircle size={16} weight="bold" className="mt-0.5 shrink-0" />
+            {error}
+          </p>
         )}
 
         {loading ? (
-          <div className="mt-10 text-center text-slate-400 text-sm">Loading…</div>
-        ) : products.length === 0 ? (
-          <div className="mt-10 text-center bg-white border border-dashed border-slate-300 rounded-2xl py-16">
-            <p className="text-slate-500">You&apos;re not tracking any products yet.</p>
-            <p className="text-sm text-slate-400 mt-1">
-              Paste a supplier product link above to get started.
-            </p>
-          </div>
+          <ProductTableSkeleton />
+        ) : isFirstRun ? (
+          <FirstProductState onAdded={loadProducts} limit={limit} />
         ) : (
-          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} onChanged={loadProducts} />
-            ))}
-          </div>
+          <>
+            <div className="mt-6 border-t border-zinc-200 pt-5">
+              {atLimit ? (
+                <p className="text-sm text-zinc-500">
+                  {plan === 'starter' ? (
+                    <>
+                      You&apos;re tracking the Starter maximum of {limit}. Pro tracks up to{' '}
+                      {PLANS.pro.productLimit} for ${PLANS.pro.monthlyPrice}/month.{' '}
+                      <button
+                        type="button"
+                        onClick={handleManageBilling}
+                        disabled={billingBusy}
+                        className="font-medium text-accent hover:text-accent-hover disabled:opacity-50"
+                      >
+                        {billingBusy ? 'Opening billing…' : 'Switch to Pro'}
+                      </button>
+                    </>
+                  ) : plan === 'pro' ? (
+                    <>You&apos;re tracking the Pro maximum of {limit}. Stop tracking one to add another.</>
+                  ) : (
+                    <>Your Free plan covers {limit} product. Choose a plan above to track more.</>
+                  )}
+                </p>
+              ) : (
+                <AddProductForm onAdded={loadProducts} />
+              )}
+            </div>
+
+            <div className="relative mt-8 overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-wider text-zinc-400">
+                    <th scope="col" className="pb-2 pl-3 pr-4 font-medium">Product</th>
+                    <th scope="col" className="pb-2 px-3 font-medium text-right">Supplier</th>
+                    <th scope="col" className="pb-2 px-3 font-medium hidden md:table-cell">Trend</th>
+                    <th scope="col" className="pb-2 px-3 font-medium text-right">Sell</th>
+                    <th scope="col" className="pb-2 px-3 font-medium text-right">Margin</th>
+                    <th scope="col" className="pb-2 px-3 font-medium hidden md:table-cell">Stock</th>
+                    <th scope="col" className="pb-2 px-3 font-medium hidden lg:table-cell">Checked</th>
+                    <th scope="col" className="pb-2 pl-2 pr-3"><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody className="border-b border-zinc-100">
+                  {rows.map(({ product }) => (
+                    <ProductRow key={product.id} product={product} onChanged={loadProducts} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {missingSellPrice > 0 && (
+              <p className="mt-4 text-xs text-zinc-500">
+                <span className="font-mono">{missingSellPrice}</span> product{missingSellPrice === 1 ? ' has' : 's have'} no
+                sell price yet, so {missingSellPrice === 1 ? 'it only gets' : 'they only get'} price and stock alerts.
+              </p>
+            )}
+          </>
         )}
       </div>
     </main>
