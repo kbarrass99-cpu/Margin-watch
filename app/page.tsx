@@ -1,85 +1,64 @@
 import Link from 'next/link';
 import PricingTable from '@/components/PricingTable';
+import SiteHeader from '@/components/marketing/SiteHeader';
+import SiteFooter from '@/components/marketing/SiteFooter';
+import HeroAlert from '@/components/marketing/HeroAlert';
+import HowItWorks from '@/components/marketing/HowItWorks';
+import MagneticLink from '@/components/marketing/MagneticLink';
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
-      <header className="max-w-6xl mx-auto flex items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2 font-semibold text-lg">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-          MarginWatch
-        </div>
-        <nav className="flex items-center gap-3">
-          <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="text-sm font-medium bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-          >
-            Start free
-          </Link>
-        </nav>
-      </header>
+    <main className="min-h-[100dvh]">
+      <SiteHeader />
 
-      <section className="max-w-4xl mx-auto text-center px-6 pt-16 pb-20">
-        <div className="inline-flex items-center gap-2 text-xs font-medium bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full mb-6">
-          Built for dropshipping suppliers
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-5">
-          Know the moment your
-          <br className="hidden sm:block" /> margin disappears.
-        </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-10">
-          Other tools just watch your supplier's price. MarginWatch knows what you actually
-          sell for — so it emails you the instant a supplier price hike eats into your margin,
-          a product goes out of stock, or a variant disappears. Never find out you've been
-          selling at a loss.
-        </p>
-        <div className="flex items-center justify-center gap-3">
-          <Link
-            href="/signup"
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition"
-          >
-            Start tracking for free
-          </Link>
-        </div>
-        <p className="text-sm text-slate-400 mt-4">Free for 1 product. No credit card.</p>
-      </section>
-
-      <section className="max-w-5xl mx-auto px-6 pb-24 grid sm:grid-cols-3 gap-6">
-        {[
-          {
-            title: 'Paste a link, add your price',
-            body: 'Add any supplier product URL and what you sell it for — no browser extension or store integration needed.',
-          },
-          {
-            title: 'We watch your margin',
-            body: 'MarginWatch checks supplier price, stock, and variants on a schedule, and does the margin math for you.',
-          },
-          {
-            title: 'Get alerted before it costs you',
-            body: 'The moment your margin drops below the threshold you set — or stock changes — you get an email.',
-          },
-        ].map((f) => (
-          <div key={f.title} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="font-semibold mb-2">{f.title}</h3>
-            <p className="text-sm text-slate-600">{f.body}</p>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-14 md:gap-10 items-center">
+        <div>
+          <p className="text-sm text-zinc-500">For dropshipping stores</p>
+          <h1 className="mt-4 text-4xl md:text-6xl font-semibold tracking-tighter leading-none max-w-[14ch]">
+            Know the moment your margin disappears.
+          </h1>
+          <p className="mt-6 text-base text-zinc-600 leading-relaxed max-w-[52ch]">
+            Other tools only watch your supplier&apos;s price. MarginWatch also knows what you sell
+            for, so it emails you the moment a price hike eats into your margin, a product goes out
+            of stock, or a variant disappears.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <MagneticLink
+              href="/signup"
+              className="inline-flex items-center rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
+            >
+              Track a product free
+            </MagneticLink>
+            <Link href="/#pricing" className="text-sm text-zinc-600 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900">
+              See pricing
+            </Link>
           </div>
-        ))}
+          <p className="mt-4 text-xs text-zinc-400">Free for 1 product. No credit card.</p>
+        </div>
+
+        <HeroAlert />
       </section>
 
-      <section id="pricing" className="max-w-5xl mx-auto px-6 pb-24">
-        <h2 className="text-2xl font-bold text-center mb-2">Simple pricing</h2>
-        <p className="text-center text-slate-600 mb-10">
-          Start free with one product. Upgrade when you&apos;re tracking more.
-        </p>
-        <PricingTable />
+      <div className="border-t border-zinc-200" />
+
+      <HowItWorks />
+
+      <section id="pricing" className="max-w-7xl mx-auto px-4 sm:px-6 pb-28 scroll-mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-10">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tighter leading-none">
+              Pricing
+            </h2>
+            <p className="mt-4 text-zinc-600 leading-relaxed max-w-[36ch]">
+              Start free with one product. Every plan gets the same alerts; you only pay for how
+              many products you track.
+            </p>
+          </div>
+          <PricingTable />
+        </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 py-10 text-center text-xs text-slate-400">
-        MarginWatch — the only supplier watcher that tracks your actual profit margin.
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
