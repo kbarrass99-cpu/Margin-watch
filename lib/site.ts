@@ -5,12 +5,13 @@
 export const SITE = {
   name: 'MarginCanary',
   url: 'https://margincanary.com',
-  operatorName: null as string | null,
+  operatorName: 'Kieran Barrass' as string | null,
   supportEmail: 'support@margincanary.com',
   legalUpdated: '3 October 2026',
 };
 
-// Reads after "run by": "Jane Smith" or "a sole trader based in the United Kingdom".
+// Reads after "run by", e.g. "Jane Smith, a sole trader based in the United Kingdom".
 export function operatorDescription(): string {
-  return SITE.operatorName ?? 'a sole trader based in the United Kingdom';
+  const base = 'a sole trader based in the United Kingdom';
+  return SITE.operatorName ? `${SITE.operatorName}, ${base}` : base;
 }
