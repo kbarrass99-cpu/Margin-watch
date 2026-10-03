@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { EnvelopeSimple } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
+import AuthShell from '@/components/auth/AuthShell';
+import Field, { inputClass } from '@/components/auth/Field';
+import SubmitButton from '@/components/auth/SubmitButton';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -44,79 +48,72 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-sm text-center bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-          <h1 className="text-xl font-bold mb-2">Check your email</h1>
-          <p className="text-sm text-slate-600">
-            We sent a confirmation link to <strong>{email}</strong>. Click it, then come back and
-            log in.
+      <AuthShell
+        title="Check your email"
+        footer={
+          <>
+            Confirmed already?{' '}
+            <Link href="/login" className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4">
+              Log in
+            </Link>
+          </>
+        }
+      >
+        <div className="flex gap-3 text-sm text-zinc-600 leading-relaxed">
+          <EnvelopeSimple size={20} weight="bold" className="mt-0.5 shrink-0 text-zinc-900" />
+          <p>
+            We sent a confirmation link to <span className="font-medium text-zinc-900">{email}</span>.
+            Open it, then come back and log in.
           </p>
-          <Link href="/login" className="inline-block mt-6 text-indigo-600 font-medium text-sm">
-            Go to login →
-          </Link>
         </div>
-      </main>
+      </AuthShell>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 font-semibold text-lg mb-2">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-            MarginWatch
-          </div>
-          <h1 className="text-2xl font-bold">Create your free account</h1>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4"
-        >
-          {error && (
-            <div className="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</div>
-          )}
-
-          <div>
-            <label className="text-sm font-medium text-slate-700">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700">Password</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Creating account…' : 'Create free account'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-slate-500 mt-6">
+    <AuthShell
+      title="Create your free account"
+      subtitle="Track one product free. No credit card."
+      footer={
+        <>
           Already have an account?{' '}
-          <Link href="/login" className="text-indigo-600 font-medium">
+          <Link href="/login" className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4">
             Log in
           </Link>
-        </p>
-      </div>
-    </main>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <Field id="email" label="Email" helper="Margin alerts are sent here.">
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-describedby="email-helper"
+            className={inputClass}
+          />
+        </Field>
+
+        <Field id="password" label="Password" helper="At least 6 characters." error={error}>
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'password-error' : 'password-helper'}
+            className={inputClass}
+          />
+        </Field>
+
+        <SubmitButton loading={loading} idle="Create free account" busy="Creating account…" />
+      </form>
+    </AuthShell>
   );
 }
