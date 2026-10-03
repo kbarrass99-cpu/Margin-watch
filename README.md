@@ -1,9 +1,9 @@
-# MarginWatch
+# MarginCanary
 
 Track your dropshipping supplier's product pages and get an email alert the
 moment the price changes, a product goes out of stock, comes back in stock,
 or your profit margin drops below a threshold you set (enter what you sell
-the product for, and MarginWatch alerts you when a supplier price hike eats
+the product for, and MarginCanary alerts you when a supplier price hike eats
 into your margin — not just when the raw price moves).
 
 **If you have zero coding experience, start with `DEPLOYMENT_GUIDE.md`** — it

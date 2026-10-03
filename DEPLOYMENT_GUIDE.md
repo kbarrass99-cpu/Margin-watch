@@ -1,4 +1,4 @@
-# Deploying MarginWatch — a complete, no-coding-required guide
+# Deploying MarginCanary — a complete, no-coding-required guide
 
 You will not write or edit any code in this guide. You'll create four free
 accounts, copy-paste some keys between them, and click a few buttons. It
@@ -17,12 +17,12 @@ takes about 30–45 minutes the first time.
 1. Go to [github.com](https://github.com) and create a free account if you
    don't have one.
 2. Click the **+** icon top-right → **New repository**.
-3. Name it `marginwatch`. Leave it **Public** or **Private** (either is
+3. Name it `margincanary`. Leave it **Public** or **Private** (either is
    fine — Private is fine even on the free plan). Do **not** check "Add a
    README" (we already have one). Click **Create repository**.
 4. On the next page, click the link that says **"uploading an existing
    file"**.
-5. Open the `marginwatch` folder you downloaded, select **everything inside
+5. Open the `margincanary` folder you downloaded, select **everything inside
    it** (all files and folders — including the ones starting with a dot,
    like `.github` and `.gitignore`), and drag them all into the GitHub
    upload box in your browser. Modern browsers (Chrome, Edge) preserve
@@ -45,7 +45,7 @@ again — from here on, Vercel will read your code directly from this repo.
 1. Go to [supabase.com](https://supabase.com) → **Start your project** →
    sign up free (you can use your GitHub account to sign in, which is
    fastest).
-2. Click **New project**. Give it a name like `marginwatch`, set a database
+2. Click **New project**. Give it a name like `margincanary`, set a database
    password (save this somewhere, though you won't need it again for this
    guide), pick the region closest to you, and click **Create new project**.
    Wait about 2 minutes while it sets up.
@@ -92,7 +92,7 @@ later once real users are involved.
 1. Go to [vercel.com](https://vercel.com) → sign up free using your GitHub
    account (this makes the next step automatic).
 2. Click **Add New...** → **Project**.
-3. Find your `marginwatch` repository in the list and click **Import**.
+3. Find your `margincanary` repository in the list and click **Import**.
 4. Before clicking Deploy, open the **Environment Variables** section and
    add each of these one at a time (Name on the left, Value on the right —
    paste the values you saved from Steps 2 and 3):
@@ -117,14 +117,14 @@ image, and price appear on your dashboard.
 
 ## Step 5 — Turn on the automatic scheduler (GitHub Actions)
 
-This is what makes MarginWatch check your products automatically, even
+This is what makes MarginCanary check your products automatically, even
 when you're not on the site — every 6 hours, for free, forever.
 
 1. On your GitHub repository page, click **Settings** → in the left
    sidebar, **Secrets and variables** → **Actions**.
 2. Click **New repository secret** and add these two, one at a time:
    - Name: `APP_URL` → Value: your live Vercel site URL, e.g.
-     `https://marginwatch-yourname.vercel.app` (no trailing slash)
+     `https://margincanary-yourname.vercel.app` (no trailing slash)
    - Name: `CRON_SECRET` → Value: the exact same random password you used
      in Vercel's `CRON_SECRET` in Step 4
 3. Go to the **Actions** tab on your repository. You should see a workflow

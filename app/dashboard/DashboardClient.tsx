@@ -117,7 +117,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2 font-semibold">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-            MarginWatch
+            MarginCanary
             {isPaid && (
               <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full ml-1">
                 {PLANS[plan].name}

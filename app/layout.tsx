@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'MarginWatch — Know before your supplier changes the price',
+  title: 'MarginCanary — Know before your supplier changes the price',
   description:
     'Track supplier product pages and get alerted the moment price or stock changes.',
 };

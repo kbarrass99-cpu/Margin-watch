@@ -7,7 +7,7 @@ export default function Home() {
       <header className="max-w-6xl mx-auto flex items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-semibold text-lg">
           <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-          MarginWatch
+          MarginCanary
         </div>
         <nav className="flex items-center gap-3">
           <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900">
@@ -31,7 +31,7 @@ export default function Home() {
           <br className="hidden sm:block" /> margin disappears.
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-10">
-          Other tools just watch your supplier's price. MarginWatch knows what you actually
+          Other tools just watch your supplier's price. MarginCanary knows what you actually
           sell for — so it emails you the instant a supplier price hike eats into your margin,
           a product goes out of stock, or a variant disappears. Never find out you've been
           selling at a loss.
@@ -55,7 +55,7 @@ export default function Home() {
           },
           {
             title: 'We watch your margin',
-            body: 'MarginWatch checks supplier price, stock, and variants on a schedule, and does the margin math for you.',
+            body: 'MarginCanary checks supplier price, stock, and variants on a schedule, and does the margin math for you.',
           },
           {
             title: 'Get alerted before it costs you',
@@ -78,7 +78,7 @@ export default function Home() {
       </section>
 
       <footer className="max-w-6xl mx-auto px-6 py-10 text-center text-xs text-slate-400">
-        MarginWatch — the only supplier watcher that tracks your actual profit margin.
+        MarginCanary — the only supplier watcher that tracks your actual profit margin.
       </footer>
     </main>
   );

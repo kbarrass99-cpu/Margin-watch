@@ -13,7 +13,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger MarginWatch check-all endpoint
+      - name: Trigger MarginCanary check-all endpoint
         run: |
           curl -sS -X POST "${{ secrets.APP_URL }}/api/cron/check-all" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
