@@ -17,7 +17,9 @@ export default function PrivacyPage() {
         <p>
           {SITE.name} is run by {operatorDescription()} (&ldquo;we&rdquo;, &ldquo;us&rdquo;). We are the
           controller of the personal data described here under the UK General Data Protection Regulation
-          (UK GDPR) and the Data Protection Act 2018.
+          (UK GDPR) and the Data Protection Act 2018. If you are in the European Economic Area (EEA), the EU
+          General Data Protection Regulation also applies, and we treat your data to the same standard wherever
+          you are in the world.
         </p>
         <p>For any privacy question or request, email {email}.</p>
       </section>
@@ -81,9 +83,11 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p>
-          Some of these providers store or process data outside the UK, including in the United States. Where
-          they do, the transfer is protected by the UK&ndash;US data bridge or by the UK International Data
-          Transfer Agreement or Addendum, as appropriate.
+          We are based in the UK, and some of these providers store or process data in other countries,
+          including the United States. Where data leaves the UK or EEA, the transfer is protected by an
+          adequacy decision (such as the UK&ndash;US data bridge or the EU&ndash;US Data Privacy Framework) or by
+          standard contractual clauses (the UK International Data Transfer Agreement or Addendum, or the EU
+          Standard Contractual Clauses), as appropriate.
         </p>
         <p>We may also disclose data if the law requires it.</p>
       </section>
@@ -122,7 +126,12 @@ export default function PrivacyPage() {
           <a href="https://ico.org.uk/make-a-complaint/" rel="noopener noreferrer" target="_blank">
             ico.org.uk
           </a>{' '}
-          or on 0303 123 1113.
+          or on 0303 123 1113. If you are in the EEA, you can also complain to the data protection authority in
+          the country where you live or work.
+        </p>
+        <p>
+          Wherever you live, you can ask us to access, correct or delete your data. We do not sell or share
+          personal data for advertising, as those terms are used in US state privacy laws such as California&apos;s.
         </p>
       </section>
 
