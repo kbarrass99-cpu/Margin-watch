@@ -50,7 +50,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 font-semibold text-lg mb-2">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600" />
-            MarginWatch
+            MarginCanary
           </div>
           <h1 className="text-2xl font-bold">Welcome back</h1>
         </div>

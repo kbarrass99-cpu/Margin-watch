@@ -1,5 +1,5 @@
 -- Run this entire file once in your Supabase project's SQL Editor.
--- It creates the three tables MarginWatch needs and locks them down so
+-- It creates the three tables MarginCanary needs and locks them down so
 -- each user can only ever see their own data.
 
 create table if not exists tracked_products (
