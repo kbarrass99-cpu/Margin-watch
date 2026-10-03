@@ -8,9 +8,9 @@ import Reveal from '@/components/marketing/shopify/Reveal';
 import { PLANS } from '@/lib/plans';
 
 export const metadata: Metadata = {
-  title: 'MarginWatch for Shopify dropshippers',
+  title: 'MarginCanary for Shopify dropshippers',
   description:
-    'Your Shopify price stays put while supplier costs move. MarginWatch emails you when the gap gets too small.',
+    'Your Shopify price stays put while supplier costs move. MarginCanary emails you when the gap gets too small.',
 };
 
 const STEPS = [
@@ -20,7 +20,7 @@ const STEPS = [
   },
   {
     title: 'Paste it with your Shopify price',
-    body: 'Enter what the product sells for in your store. MarginWatch reads the supplier price and works out your margin straight away.',
+    body: 'Enter what the product sells for in your store. MarginCanary reads the supplier price and works out your margin straight away.',
   },
   {
     title: 'Reprice before the next order',
@@ -43,7 +43,7 @@ export default function ShopifyPage() {
         <div className="mt-10 grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr] gap-8">
           <p className="md:col-start-2 text-base text-zinc-600 leading-relaxed max-w-[48ch]">
             A supplier adds $3 to a product and your store keeps selling it at the old price. You
-            find out from your payout. MarginWatch watches the supplier page and emails you first.
+            find out from your payout. MarginCanary watches the supplier page and emails you first.
           </p>
           <div className="md:col-start-3 flex flex-col items-start gap-3">
             <MagneticLink

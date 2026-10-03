@@ -4,7 +4,7 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MarginWatch — Know before your supplier changes the price',
+  title: 'MarginCanary — Know before your supplier changes the price',
   description:
     'Track supplier product pages and get alerted the moment price or stock changes.',
 };

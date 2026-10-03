@@ -8,7 +8,7 @@ export default function SiteFooter() {
         <div className="flex items-start gap-3 text-zinc-500">
           <LogoMark className="w-5 h-5 text-zinc-900 shrink-0" />
           <p className="max-w-[40ch]">
-            MarginWatch tracks your supplier&apos;s price against what you sell for, and emails you
+            MarginCanary tracks your supplier&apos;s price against what you sell for, and emails you
             when the gap gets too small.
           </p>
         </div>

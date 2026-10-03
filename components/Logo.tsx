@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-// A price line that dips under a threshold: the one thing MarginWatch watches for.
+// A price line that dips under a threshold: the one thing MarginCanary watches for.
 export function LogoMark({ className = 'w-5 h-5' }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
@@ -21,7 +21,7 @@ export default function Logo({ href = '/' }: { href?: string }) {
   return (
     <Link href={href} className="inline-flex items-center gap-2 font-semibold tracking-tight text-zinc-900">
       <LogoMark />
-      MarginWatch
+      MarginCanary
     </Link>
   );
 }

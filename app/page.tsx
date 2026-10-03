@@ -18,7 +18,7 @@ export default function Home() {
             Know the moment your margin disappears.
           </h1>
           <p className="mt-6 text-base text-zinc-600 leading-relaxed max-w-[52ch]">
-            Other tools only watch your supplier&apos;s price. MarginWatch also knows what you sell
+            Other tools only watch your supplier&apos;s price. MarginCanary also knows what you sell
             for, so it emails you the moment a price hike eats into your margin, a product goes out
             of stock, or a variant disappears.
           </p>

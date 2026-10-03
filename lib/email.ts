@@ -16,16 +16,16 @@ export async function sendAlertEmail(opts: {
 
   try {
     await resend.emails.send({
-      from: `MarginWatch <${from}>`,
+      from: `MarginCanary <${from}>`,
       to: opts.to,
-      subject: `MarginWatch alert: ${opts.productTitle}`,
+      subject: `MarginCanary alert: ${opts.productTitle}`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px;">
-          <h2 style="margin-bottom: 4px;">MarginWatch alert</h2>
+          <h2 style="margin-bottom: 4px;">MarginCanary alert</h2>
           <p style="color:#3f3f46;">${opts.message}</p>
           <p><a href="${opts.productUrl}" style="color:#2348d8;">View the supplier page</a></p>
           <p style="color:#a1a1aa; font-size:12px; margin-top:24px;">
-            You're receiving this because you're tracking this product on MarginWatch.
+            You're receiving this because you're tracking this product on MarginCanary.
           </p>
         </div>
       `,
