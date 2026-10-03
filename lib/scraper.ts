@@ -28,8 +28,10 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
 
   // Many suppliers (AliExpress in particular) block plain server-side
   // fetches outright. If a Firecrawl key is configured, retry through it -
-  // it renders a real browser session, which gets past basic blocks (though
-  // not every anti-bot challenge, e.g. an interactive CAPTCHA).
+  // it renders a real browser session, which copes with pages that need
+  // JavaScript. It deliberately uses Firecrawl's basic proxy, not its
+  // anti-bot "stealth" mode: if a site actively blocks automated checks we
+  // report that honestly rather than trying to get around it.
   if (process.env.FIRECRAWL_API_KEY) {
     const viaFirecrawl = await fetchViaFirecrawl(url);
     if (viaFirecrawl) return viaFirecrawl;
@@ -75,7 +77,7 @@ async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
       body: JSON.stringify({
         url,
         formats: ['rawHtml'],
-        proxy: 'stealth',
+        proxy: 'basic',
         location: { country: 'US' },
       }),
       signal: AbortSignal.timeout(30000),
