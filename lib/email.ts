@@ -22,7 +22,10 @@ export async function sendAlertEmail(opts: {
       subject: `MarginCanary alert: ${opts.productTitle}`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px;">
-          <h2 style="margin-bottom: 4px;">MarginCanary alert</h2>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 4px;"><tr>
+            <td style="padding-right: 10px; vertical-align: middle;"><img src="${SITE.url}/email-logo.png" width="32" height="32" alt="" style="display: block;" /></td>
+            <td style="vertical-align: middle;"><h2 style="margin: 0;">${SITE.name} alert</h2></td>
+          </tr></table>
           <p style="color:#3f3f46;">${opts.message}</p>
           <p><a href="${opts.productUrl}" style="color:#2348d8;">View the supplier page</a></p>
           <p style="color:#a1a1aa; font-size:12px; margin-top:24px; line-height:1.5;">
