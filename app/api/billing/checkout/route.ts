@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe, priceIdForPlan } from '@/lib/stripe';
-import { isPaidPlan, PLANS } from '@/lib/plans';
+import { isBillingInterval, isPaidPlan, PLANS } from '@/lib/plans';
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -16,14 +16,8 @@ export async function POST(request: Request) {
   if (!isPaidPlan(body.plan)) {
     return NextResponse.json({ error: 'Please choose a plan.' }, { status: 400 });
   }
-  const priceId = priceIdForPlan(body.plan);
-  if (!priceId) {
-    Sentry.captureMessage(`Missing Stripe price env var for plan ${body.plan}`, 'error');
-    return NextResponse.json(
-      { error: "We couldn't open checkout right now. Please try again in a minute." },
-      { status: 500 }
-    );
-  }
+  // Yearly is the default the pricing table shows, so a missing interval means yearly.
+  const interval = isBillingInterval(body.interval) ? body.interval : 'year';
 
   const stripe = getStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -48,6 +42,15 @@ export async function POST(request: Request) {
   }
 
   try {
+    const priceId = await priceIdForPlan(stripe, body.plan, interval);
+    if (!priceId) {
+      Sentry.captureMessage(`No active Stripe price for ${body.plan}/${interval}`, 'error');
+      return NextResponse.json(
+        { error: "We couldn't open checkout right now. Please try again in a minute." },
+        { status: 500 }
+      );
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: profile?.stripe_customer_id || undefined,

@@ -66,18 +66,19 @@ export default function TermsPage() {
         <h2>Plans and payment</h2>
         <ul>
           <li>
-            The Free plan is free. Paid plans are billed monthly in advance through Stripe, at the prices shown on
-            our <Link href="/#pricing">pricing</Link> section, plus any tax that applies.
+            The Free plan is free. Paid plans are billed in advance through Stripe, monthly or yearly as you
+            choose, at the prices in pounds sterling shown on our <Link href="/#pricing">pricing</Link> section,
+            plus any tax that applies.
           </li>
-          <li>Paid plans renew automatically each month until you cancel.</li>
+          <li>Paid plans renew automatically at the end of each month or year until you cancel.</li>
           <li>
             You can cancel at any time from <strong>Billing</strong> in your dashboard. Your plan stays active until
-            the end of the period you have paid for, then moves to Free. We do not refund part-months, except where
-            the law requires.
+            the end of the period you have paid for, then moves to Free. We do not refund unused months or part-months,
+            except where the law requires.
           </li>
           <li>
-            If you upgrade, the change applies straight away and you are charged the difference for the rest of the
-            month. If you downgrade, it applies from your next billing date.
+            If you upgrade, the change applies straight away and you are charged the difference for the rest of your
+            billing period. If you downgrade, it applies from your next billing date.
           </li>
           <li>We will give you at least 30 days&apos; notice by email before changing the price of your plan.</li>
         </ul>

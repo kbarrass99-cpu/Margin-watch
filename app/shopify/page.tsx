@@ -5,7 +5,7 @@ import MagneticLink from '@/components/marketing/MagneticLink';
 import ScrollMarginVisual from '@/components/marketing/shopify/ScrollMarginVisual';
 import ChangeMarquee from '@/components/marketing/shopify/ChangeMarquee';
 import Reveal from '@/components/marketing/shopify/Reveal';
-import { PLANS } from '@/lib/plans';
+import { PLANS, formatGBP } from '@/lib/plans';
 
 export const metadata: Metadata = {
   title: 'MarginCanary for Shopify dropshippers',
@@ -105,7 +105,7 @@ export default function ShopifyPage() {
             >
               Start free
             </MagneticLink>
-            <p className="text-xs text-zinc-400">1 product free. Paid plans from ${PLANS.starter.monthlyPrice}/month.</p>
+            <p className="text-xs text-zinc-400">1 product free. Paid plans from {formatGBP(PLANS.starter.yearlyPrice / 12)}/month.</p>
           </div>
         </div>
       </section>

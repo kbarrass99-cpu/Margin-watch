@@ -22,7 +22,7 @@ import {
   type Change,
   type ProductWithSnapshots,
 } from '@/lib/margin';
-import { PLANS, type PaidPlanId, type PlanId } from '@/lib/plans';
+import { PLANS, formatGBP, type BillingInterval, type PaidPlanId, type PlanId } from '@/lib/plans';
 
 type Me = {
   email: string;
@@ -113,7 +113,8 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
     setBillingBusy(false);
   }
 
-  const handleChoosePlan = (plan: PaidPlanId) => openBillingPage('/api/billing/checkout', { plan });
+  const handleChoosePlan = (plan: PaidPlanId, interval: BillingInterval) =>
+    openBillingPage('/api/billing/checkout', { plan, interval });
   const handleManageBilling = () => openBillingPage('/api/billing/portal');
 
   const plan: PlanId = me?.plan ?? 'free';
@@ -306,7 +307,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                   {plan === 'starter' ? (
                     <>
                       You&apos;re tracking the Starter maximum of {limit}. Pro tracks up to{' '}
-                      {PLANS.pro.productLimit} for ${PLANS.pro.monthlyPrice}/month.{' '}
+                      {PLANS.pro.productLimit} from {formatGBP(PLANS.pro.yearlyPrice / 12)}/month.{' '}
                       <button
                         type="button"
                         onClick={handleManageBilling}
@@ -320,8 +321,8 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                     <>You&apos;re tracking the Pro maximum of {limit}. Stop tracking one to add another.</>
                   ) : (
                     <>
-                      Free covers {limit} product. Starter tracks {PLANS.starter.productLimit} for $
-                      {PLANS.starter.monthlyPrice}/month.{' '}
+                      Free covers {limit} product. Starter tracks {PLANS.starter.productLimit} from{' '}
+                      {formatGBP(PLANS.starter.yearlyPrice / 12)}/month.{' '}
                       <button
                         type="button"
                         onClick={() => setShowPlans(true)}
