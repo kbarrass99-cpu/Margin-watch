@@ -16,10 +16,12 @@ function niceStep(range: number) {
 export default function MarginChart({
   snapshots,
   sellPrice,
+  extraCost = 0,
   threshold,
 }: {
   snapshots: PriceSnapshot[];
   sellPrice: number | null;
+  extraCost?: number;
   threshold: number;
 }) {
   const showMargin = sellPrice != null && sellPrice > 0;
@@ -27,7 +29,7 @@ export default function MarginChart({
     .filter((s) => s.price != null)
     .map((s) => ({
       t: new Date(s.checked_at).getTime(),
-      v: showMargin ? marginPercent(sellPrice, s.price)! : s.price!,
+      v: showMargin ? marginPercent(sellPrice, s.price, extraCost)! : s.price!,
     }));
 
   if (points.length < 2) {

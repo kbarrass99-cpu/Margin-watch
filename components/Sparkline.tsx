@@ -9,6 +9,7 @@ export default function Sparkline({
   width?: number;
   height?: number;
 }) {
+  // Failed checks are left out by the caller; zero is never a real supplier price.
   const points = data.filter((d) => d > 0);
 
   if (points.length < 2) {

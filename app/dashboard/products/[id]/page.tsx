@@ -40,7 +40,7 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
   if (!product) notFound();
 
   const p = product as ProductWithSnapshots;
-  const { sorted, latest, margin, marginDollar, atRisk } = summarize(p);
+  const { sorted, lastPrice, margin, marginDollar, atRisk, currency } = summarize(p);
 
   // Change log: the first check, then only checks where price or stock moved.
   const changes = sorted
@@ -50,10 +50,11 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
   const hiddenChecks = sorted.length - changes.length;
 
   const stats = [
-    { label: 'Supplier price', value: money(latest?.price) },
-    { label: 'You sell for', value: money(p.sell_price) },
+    { label: 'Supplier price', value: money(lastPrice, currency) },
+    { label: 'You sell for', value: money(p.sell_price, currency) },
+    ...(p.extra_cost ? [{ label: 'Shipping and fees', value: money(p.extra_cost, currency) }] : []),
     { label: 'Margin', value: margin != null ? `${margin.toFixed(1)}%` : '—', bad: atRisk },
-    { label: 'Per sale', value: money(marginDollar), bad: atRisk },
+    { label: 'Profit per sale', value: money(marginDollar, currency), bad: atRisk },
     { label: 'Alert line', value: `${p.margin_alert_percent}%` },
     { label: 'Checks', value: String(sorted.length) },
   ];
@@ -72,7 +73,7 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight truncate">{p.title || hostOf(p.source_url)}</h1>
+          <h1 className="text-xl font-semibold tracking-tight line-clamp-2 text-balance">{p.title || hostOf(p.source_url)}</h1>
           <a
             href={p.source_url}
             target="_blank"
@@ -96,7 +97,7 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
         <section className="mt-10">
           <h2 className="text-sm font-medium">{p.sell_price != null ? 'Margin over time' : 'Supplier price over time'}</h2>
           <div className="mt-4">
-            <MarginChart snapshots={sorted} sellPrice={p.sell_price} threshold={p.margin_alert_percent} />
+            <MarginChart snapshots={sorted} sellPrice={p.sell_price} extraCost={p.extra_cost ?? 0} threshold={p.margin_alert_percent} />
           </div>
         </section>
 
@@ -132,7 +133,7 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
                         prev?.price != null && s.price != null && prev.price !== 0
                           ? ((s.price - prev.price) / prev.price) * 100
                           : null;
-                      const m = marginPercent(p.sell_price, s.price);
+                      const m = marginPercent(p.sell_price, s.price, p.extra_cost ?? 0);
                       const low = m != null && m <= p.margin_alert_percent;
                       return (
                         <tr key={s.id}>
@@ -144,7 +145,7 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
                               minute: '2-digit',
                             })}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono tabular-nums">{money(s.price)}</td>
+                          <td className="py-2 px-3 text-right font-mono tabular-nums">{money(s.price, s.currency)}</td>
                           <td
                             className={`py-2 px-3 text-right font-mono text-xs tabular-nums ${
                               delta == null ? 'text-zinc-300' : delta > 0 ? 'text-red-600' : 'text-emerald-600'
