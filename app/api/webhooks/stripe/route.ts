@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import type Stripe from 'stripe';
-import { getStripe, planForPriceId } from '@/lib/stripe';
+import { getStripe, planForPrice } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { PlanId } from '@/lib/plans';
 
@@ -70,12 +70,12 @@ async function syncSubscription(stripe: Stripe, subscriptionId: string) {
 
   let plan: PlanId = 'free';
   if (isActive) {
-    const priceId = subscription.items.data[0]?.price.id;
-    const paidPlan = planForPriceId(priceId);
+    const price = subscription.items.data[0]?.price;
+    const paidPlan = planForPrice(price);
     if (!paidPlan) {
       // Don't under-serve a paying customer over a config mismatch - give
-      // them the top tier and flag it so the price env vars get fixed.
-      Sentry.captureMessage(`Unrecognised Stripe price ${priceId} on ${subscription.id}`, 'warning');
+      // them the top tier and flag it so the price's lookup key gets fixed.
+      Sentry.captureMessage(`Unrecognised Stripe price ${price?.id} on ${subscription.id}`, 'warning');
     }
     plan = paidPlan ?? 'pro';
   }

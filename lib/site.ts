@@ -7,7 +7,7 @@ export const SITE = {
   url: 'https://margincanary.com',
   operatorName: null as string | null,
   supportEmail: 'support@margincanary.com',
-  legalUpdated: '3 October 2026',
+  legalUpdated: '6 October 2026',
 };
 
 // Reads after "run by": "Jane Smith" or "a sole trader based in the United Kingdom".
