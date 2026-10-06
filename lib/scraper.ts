@@ -42,16 +42,31 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
 
 async function fetchDirect(url: string): Promise<ScrapeResult> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      redirect: 'follow',
-      // Don't let a slow/stuck page hang the whole check run.
-      signal: AbortSignal.timeout(15000),
-    });
+    // Follow redirects ourselves and re-check every hop, so a public URL can't
+    // bounce the scraper on to a private or cloud-metadata address.
+    let target = url;
+    let res: Response | null = null;
+    // Don't let a slow/stuck page hang the whole check run.
+    const signal = AbortSignal.timeout(15000);
+    for (let hop = 0; hop <= 5; hop++) {
+      if (hop > 0) await assertPublicHttpUrl(target);
+      res = await fetch(target, {
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        redirect: 'manual',
+        signal,
+      });
+      const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+      if (!location) break;
+      target = new URL(location, target).toString();
+      res = null;
+    }
+    if (!res) {
+      return { ok: false, rawStatus: 'The page redirected too many times' };
+    }
 
     if (!res.ok) {
       return { ok: false, rawStatus: `Fetch failed with status ${res.status}` };

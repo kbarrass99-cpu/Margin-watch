@@ -19,6 +19,9 @@ using only web dashboards (no software to install, no command line).
 - `supabase/schema.sql` — the database structure, run this once in Supabase
 - `supabase/schema-margin.sql` — adds sell price + margin alert threshold,
   run this once too (after `schema.sql`)
+- `supabase/schema-checks.sql` — adds shipping and fees per sale, tracks when
+  each product was last checked, and limits which columns users can edit;
+  run this once after the other schema files
 - `.github/workflows/cron.yml` — the free scheduler that checks all products
   automatically every 6 hours
 

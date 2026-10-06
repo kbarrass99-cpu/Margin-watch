@@ -18,7 +18,10 @@ export async function GET() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('Loading products failed', error);
+    return NextResponse.json({ error: 'Your products could not be loaded. Refresh the page to try again.' }, { status: 500 });
+  }
 
   return NextResponse.json({ products });
 }
@@ -42,6 +45,18 @@ export async function POST(request: Request) {
 
   if (sellPrice !== null && (!Number.isFinite(sellPrice) || sellPrice < 0)) {
     return NextResponse.json({ error: 'Sell price must be a positive number' }, { status: 400 });
+  }
+
+  const extraCost =
+    body.extra_cost === '' || body.extra_cost == null ? null : Number(body.extra_cost);
+  if (extraCost !== null && (!Number.isFinite(extraCost) || extraCost < 0)) {
+    return NextResponse.json({ error: 'Shipping and fees must be zero or more' }, { status: 400 });
+  }
+
+  const marginAlert =
+    body.margin_alert_percent === '' || body.margin_alert_percent == null ? 20 : Number(body.margin_alert_percent);
+  if (!Number.isFinite(marginAlert) || marginAlert < 0 || marginAlert > 100) {
+    return NextResponse.json({ error: 'Alert threshold must be between 0 and 100%' }, { status: 400 });
   }
 
   try {
@@ -83,11 +98,16 @@ export async function POST(request: Request) {
       user_email: user.email,
       source_url: sourceUrl,
       sell_price: sellPrice,
+      extra_cost: extraCost,
+      margin_alert_percent: marginAlert,
     })
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('Adding product failed', error);
+    return NextResponse.json({ error: 'That product could not be added. Try again in a minute.' }, { status: 500 });
+  }
 
   // Run the first check immediately so the user sees real data right away
   // instead of an empty card until the next scheduled run.

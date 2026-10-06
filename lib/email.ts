@@ -6,17 +6,17 @@ export async function sendAlertEmail(opts: {
   productTitle: string;
   productUrl: string;
   message: string;
-}) {
+}): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set - skipping email send');
-    return;
+    return false;
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const from = process.env.ALERT_FROM_EMAIL || 'onboarding@resend.dev';
 
   try {
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: `MarginCanary <${from}>`,
       to: opts.to,
       subject: `MarginCanary alert: ${opts.productTitle}`,
@@ -39,7 +39,13 @@ export async function sendAlertEmail(opts: {
         </div>
       `,
     });
+    if (error) {
+      console.error('Resend rejected alert email', error);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error('Failed to send alert email', err);
+    return false;
   }
 }

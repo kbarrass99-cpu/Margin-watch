@@ -8,7 +8,9 @@ export type TrackedProduct = {
   is_active: boolean;
   alert_threshold_percent: number;
   sell_price: number | null;
+  extra_cost: number | null;
   margin_alert_percent: number;
+  last_checked_at: string | null;
   created_at: string;
 };
 
