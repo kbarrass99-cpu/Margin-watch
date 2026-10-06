@@ -22,7 +22,7 @@ import {
   type Change,
   type ProductWithSnapshots,
 } from '@/lib/margin';
-import { PLANS, formatGBP, type BillingInterval, type PaidPlanId, type PlanId } from '@/lib/plans';
+import { PLANS, formatPrice, type BillingInterval, type PaidPlanId, type PlanId } from '@/lib/plans';
 
 type Me = {
   email: string;
@@ -307,7 +307,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                   {plan === 'starter' ? (
                     <>
                       You&apos;re tracking the Starter maximum of {limit}. Pro tracks up to{' '}
-                      {PLANS.pro.productLimit} from {formatGBP(PLANS.pro.yearlyPrice / 12)}/month.{' '}
+                      {PLANS.pro.productLimit} from {formatPrice(PLANS.pro.yearlyPrice / 12)}/month.{' '}
                       <button
                         type="button"
                         onClick={handleManageBilling}
@@ -322,7 +322,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                   ) : (
                     <>
                       Free covers {limit} product. Starter tracks {PLANS.starter.productLimit} from{' '}
-                      {formatGBP(PLANS.starter.yearlyPrice / 12)}/month.{' '}
+                      {formatPrice(PLANS.starter.yearlyPrice / 12)}/month.{' '}
                       <button
                         type="button"
                         onClick={() => setShowPlans(true)}

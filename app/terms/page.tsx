@@ -67,7 +67,7 @@ export default function TermsPage() {
         <ul>
           <li>
             The Free plan is free. Paid plans are billed in advance through Stripe, monthly or yearly as you
-            choose, at the prices in pounds sterling shown on our <Link href="/#pricing">pricing</Link> section,
+            choose, at the prices in US dollars shown on our <Link href="/#pricing">pricing</Link> section,
             plus any tax that applies.
           </li>
           <li>Paid plans renew automatically at the end of each month or year until you cancel.</li>

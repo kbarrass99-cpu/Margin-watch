@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Check } from '@phosphor-icons/react';
 import {
   PLANS,
-  formatGBP,
+  formatPrice,
   yearlySaving,
   type BillingInterval,
   type PaidPlanId,
@@ -56,11 +56,11 @@ function priceLines(plan: PaidPlanId, interval: BillingInterval) {
   const p = PLANS[plan];
   if (interval === 'year') {
     return {
-      amount: formatGBP(p.yearlyPrice / 12),
-      detail: `${formatGBP(p.yearlyPrice)} billed yearly. Save ${formatGBP(yearlySaving(plan))}.`,
+      amount: formatPrice(p.yearlyPrice / 12),
+      detail: `${formatPrice(p.yearlyPrice)} billed yearly. Save ${formatPrice(yearlySaving(plan))}.`,
     };
   }
-  return { amount: formatGBP(p.monthlyPrice), detail: 'Billed monthly. Cancel any time.' };
+  return { amount: formatPrice(p.monthlyPrice), detail: 'Billed monthly. Cancel any time.' };
 }
 
 // With onChoose (dashboard) paid plans start checkout; without it (landing
@@ -160,7 +160,7 @@ export default function PricingTable({
               </div>
               <div>
                 <p className="flex items-baseline gap-1">
-                  <span className="font-mono text-2xl tracking-tight">{price ? price.amount : formatGBP(0)}</span>
+                  <span className="font-mono text-2xl tracking-tight">{price ? price.amount : formatPrice(0)}</span>
                   <span className="text-xs text-zinc-500">/month</span>
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">

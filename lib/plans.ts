@@ -2,7 +2,7 @@ export type PlanId = 'free' | 'starter' | 'pro';
 export type PaidPlanId = Exclude<PlanId, 'free'>;
 export type BillingInterval = 'month' | 'year';
 
-// Prices are in GBP. Yearly is ten months' price: two months free.
+// Prices are in USD. Yearly is ten months' price: two months free.
 export const PLANS: Record<
   PlanId,
   { name: string; monthlyPrice: number; yearlyPrice: number; productLimit: number }
@@ -26,9 +26,9 @@ export function planFor(value: string | null | undefined): PlanId {
   return value === 'starter' || value === 'pro' ? value : 'free';
 }
 
-// £9 -> "£9", £7.5 -> "£7.50", £15.8333 -> "£15.83".
-export function formatGBP(amount: number): string {
-  return Number.isInteger(amount) ? `£${amount}` : `£${amount.toFixed(2)}`;
+// 9 -> "$9", 7.5 -> "$7.50", 15.8333 -> "$15.83".
+export function formatPrice(amount: number): string {
+  return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(2)}`;
 }
 
 export function yearlySaving(plan: PaidPlanId): number {

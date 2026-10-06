@@ -11,8 +11,8 @@ export function getStripe() {
 // and live mode only need prices with the same keys (and changing a price
 // means moving the key to a new price in Stripe, no redeploy).
 const LOOKUP_KEYS: Record<PaidPlanId, Record<BillingInterval, string>> = {
-  starter: { month: 'starter_monthly_gbp', year: 'starter_yearly_gbp' },
-  pro: { month: 'pro_monthly_gbp', year: 'pro_yearly_gbp' },
+  starter: { month: 'starter_monthly_usd', year: 'starter_yearly_usd' },
+  pro: { month: 'pro_monthly_usd', year: 'pro_yearly_usd' },
 };
 
 export async function priceIdForPlan(
@@ -24,8 +24,8 @@ export async function priceIdForPlan(
   return data[0]?.id;
 }
 
-// Works for current prices (lookup key or metadata.plan) and for the older
-// USD prices still attached to existing subscriptions (the env var IDs).
+// Recognises a plan by lookup key, then metadata.plan, then the legacy
+// STRIPE_PRICE_ID_* env vars (kept so nothing breaks if a key is missing).
 export function planForPrice(price: Stripe.Price | undefined): PaidPlanId | null {
   if (!price) return null;
   for (const plan of ['starter', 'pro'] as const) {
