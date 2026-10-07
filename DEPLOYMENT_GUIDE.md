@@ -111,6 +111,9 @@ your live address, and **Redirect URLs** to exactly
    | `SUPABASE_SERVICE_ROLE_KEY` | your Supabase service_role key |
    | `RESEND_API_KEY` | your Resend API key |
    | `ALERT_FROM_EMAIL` | `onboarding@resend.dev` |
+   | `ALIEXPRESS_APP_KEY` | App Key of your AliExpress Open Platform app (needed to track AliExpress products) |
+   | `ALIEXPRESS_APP_SECRET` | App Secret of the same app |
+   | `CJ_API_KEY` | your CJdropshipping API key (CJ account → Authorization → API; needed to track CJ products) |
    | `CRON_SECRET` | a long random password: run `openssl rand -hex 32` and paste the result (don't reuse an example value) |
 
 5. Click **Deploy**. Wait 1–2 minutes. When it's done, click **Visit** —

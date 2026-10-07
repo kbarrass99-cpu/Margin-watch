@@ -1,6 +1,8 @@
 import * as cheerio from 'cheerio';
 import { assertPublicHttpUrl } from './urlSafety';
 import { BlockedUrlError, safeGet } from './safeFetch';
+import { aliexpressConfigured, fetchAliExpressProduct, isAliExpressUrl, resolveProductId } from './aliexpress';
+import { cjConfigured, cjProductIdFromUrl, fetchCjProduct, isCjUrl } from './cjdropshipping';
 
 export type ScrapeResult = {
   ok: boolean;
@@ -13,6 +15,10 @@ export type ScrapeResult = {
   // The URL itself was refused by the safety check (not a site problem).
   blocked?: boolean;
 };
+
+// Signs that a site served a bot check / CAPTCHA page instead of the product.
+const ROBOT_CHECK = /captcha|are you a robot|check if you are a robot|not a robot|human verification|unusual traffic|x5secdata|_____tmd_____/i;
+const ROBOT_CHECK_STATUS = 'This supplier showed a robot check instead of the product page, so the price could not be read.';
 
 // Product pages are rarely over 1-2 MB; anything past this is ignored.
 const MAX_PAGE_BYTES = 3 * 1024 * 1024;
@@ -29,6 +35,21 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
     return { ok: false, blocked: true, rawStatus: err?.message || 'This URL is not allowed' };
   }
 
+  // AliExpress blocks automated page visits with a robot check, so its
+  // products are read through the official AliExpress API when configured.
+  if (isAliExpressUrl(url) && aliexpressConfigured()) {
+    const productId = await resolveProductId(url);
+    if (productId) return fetchAliExpressProduct(productId);
+    return { ok: false, rawStatus: "This doesn't look like an AliExpress product link. Use the link to the product's own page." };
+  }
+
+  // CJdropshipping does the same, so CJ products go through CJ's API.
+  if (isCjUrl(url) && cjConfigured()) {
+    const pid = cjProductIdFromUrl(url);
+    if (pid) return fetchCjProduct(pid);
+    return { ok: false, rawStatus: "This doesn't look like a CJdropshipping product link. Use the link to the product's own page." };
+  }
+
   const direct = await fetchDirect(url);
   if (direct.ok || direct.blocked) return direct;
 
@@ -40,7 +61,8 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   // report that honestly rather than trying to get around it.
   if (process.env.FIRECRAWL_API_KEY) {
     const viaFirecrawl = await fetchViaFirecrawl(url);
-    if (viaFirecrawl) return viaFirecrawl;
+    // Report Firecrawl's robot check too: it says more than the plain fetch's failure.
+    if (viaFirecrawl && (viaFirecrawl.ok || viaFirecrawl.rawStatus === ROBOT_CHECK_STATUS)) return viaFirecrawl;
   }
 
   return direct;
@@ -111,7 +133,7 @@ async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
     if (!html) return null;
 
     const result = parseProductHtml(String(html).slice(0, MAX_PAGE_BYTES));
-    if (!result.ok) return null;
+    if (!result.ok) return result;
 
     return { ...result, rawStatus: `${result.rawStatus} (via Firecrawl fallback)` };
   } catch {
@@ -151,8 +173,9 @@ function parseProductHtml(html: string): ScrapeResult {
     ok: false,
     title: cleanTitle(ogTitle),
     imageUrl: cleanImageUrl(ogImage),
-    rawStatus:
-      'Could not find price data on this page. The site may have changed its layout or blocked the request.',
+    rawStatus: ROBOT_CHECK.test(html)
+      ? ROBOT_CHECK_STATUS
+      : 'Could not find price data on this page. The site may have changed its layout or blocked the request.',
   };
 }
 
