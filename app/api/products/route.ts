@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkOneProduct } from '@/lib/checkProduct';
 import { planFor, PLANS } from '@/lib/plans';
-import { assertPublicHttpUrl } from '@/lib/urlSafety';
+import { assertPublicHttpUrl, normalizeHttpUrl } from '@/lib/urlSafety';
+
+function limitMessage(plan: ReturnType<typeof planFor>) {
+  const limit = PLANS[plan].productLimit;
+  return `The ${PLANS[plan].name} plan is limited to ${limit} tracked product${limit === 1 ? '' : 's'}.${
+    plan === 'pro' ? '' : ' Upgrade to track more.'
+  }`;
+}
 
 export async function GET() {
   const supabase = createClient();
@@ -34,12 +42,20 @@ export async function POST(request: Request) {
 
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
+  // Alerts go to the account email, so it must be one the user has proved they own.
+  if (!user.email || !user.email_confirmed_at) {
+    return NextResponse.json(
+      { error: 'Confirm your email address first (check your inbox for the link), then add products.' },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
-  const sourceUrl: string = (body.source_url || '').trim();
+  const rawUrl: string = typeof body.source_url === 'string' ? body.source_url.trim() : '';
   const sellPrice =
     body.sell_price === '' || body.sell_price == null ? null : Number(body.sell_price);
 
-  if (!sourceUrl || !sourceUrl.startsWith('http')) {
+  if (!rawUrl || !rawUrl.startsWith('http') || rawUrl.length > 2048) {
     return NextResponse.json({ error: 'Please provide a valid product URL' }, { status: 400 });
   }
 
@@ -59,8 +75,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Alert threshold must be between 0 and 100%' }, { status: 400 });
   }
 
+  let sourceUrl: string;
   try {
-    await assertPublicHttpUrl(sourceUrl);
+    await assertPublicHttpUrl(rawUrl);
+    sourceUrl = normalizeHttpUrl(rawUrl);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
@@ -80,17 +98,11 @@ export async function POST(request: Request) {
     .eq('user_id', user.id);
 
   if ((count ?? 0) >= limit) {
-    return NextResponse.json(
-      {
-        error: `The ${PLANS[plan].name} plan is limited to ${limit} tracked product${
-          limit === 1 ? '' : 's'
-        }.${plan === 'pro' ? '' : ' Upgrade to track more.'}`,
-        limitReached: true,
-      },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: limitMessage(plan), limitReached: true }, { status: 403 });
   }
 
+  // The database also enforces the limit (and the recipient address) itself,
+  // so parallel requests or direct API calls can't get past it.
   const { data: inserted, error } = await supabase
     .from('tracked_products')
     .insert({
@@ -104,6 +116,9 @@ export async function POST(request: Request) {
     .select()
     .single();
 
+  if (error?.message?.includes('product limit reached')) {
+    return NextResponse.json({ error: limitMessage(plan), limitReached: true }, { status: 403 });
+  }
   if (error) {
     console.error('Adding product failed', error);
     return NextResponse.json({ error: 'That product could not be added. Try again in a minute.' }, { status: 500 });
@@ -111,7 +126,7 @@ export async function POST(request: Request) {
 
   // Run the first check immediately so the user sees real data right away
   // instead of an empty card until the next scheduled run.
-  await checkOneProduct(supabase, inserted);
+  await checkOneProduct(createAdminClient(), inserted);
 
   return NextResponse.json({ product: inserted });
 }

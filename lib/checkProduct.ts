@@ -4,7 +4,7 @@ import { scrapeProductPage } from './scraper';
 import { sendAlertEmail } from './email';
 import { formatMoney } from './money';
 
-type ProductForCheck = {
+export type ProductForCheck = {
   id: string;
   source_url: string;
   title: string | null;
@@ -20,6 +20,8 @@ type AlertType = 'price_up' | 'price_down' | 'out_of_stock' | 'back_in_stock' | 
 // This runs the whole "check one product" pipeline:
 // scrape -> save a snapshot -> compare to the last good reading -> alert if needed.
 // It's used by both the manual "Check now" button and the scheduled cron job.
+// Pass the admin (service role) client: check results are server-owned and
+// users can't write them directly. Callers must check ownership first.
 export async function checkOneProduct(supabase: SupabaseClient, product: ProductForCheck) {
   const result = await scrapeProductPage(product.source_url);
 
@@ -56,7 +58,7 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
       price: result.price ?? null,
       currency: result.currency ?? null,
       in_stock: result.inStock ?? null,
-      raw_status: result.rawStatus,
+      raw_status: result.rawStatus.slice(0, 500),
     })
     .select()
     .single();

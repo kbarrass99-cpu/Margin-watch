@@ -19,9 +19,14 @@ using only web dashboards (no software to install, no command line).
 - `supabase/schema.sql` — the database structure, run this once in Supabase
 - `supabase/schema-margin.sql` — adds sell price + margin alert threshold,
   run this once too (after `schema.sql`)
+- `supabase/schema-billing.sql` — adds each user's plan and Stripe IDs; run
+  this once after `schema-margin.sql`
 - `supabase/schema-checks.sql` — adds shipping and fees per sale, tracks when
   each product was last checked, and limits which columns users can edit;
   run this once after the other schema files
+- `supabase/schema-security.sql` — makes the database enforce the plan
+  limit and the alert recipient, and keeps check results server-only; run
+  this last (safe to re-run)
 - `.github/workflows/cron.yml` — the free scheduler that checks all products
   automatically every 6 hours
 
