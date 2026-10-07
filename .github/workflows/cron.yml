@@ -9,6 +9,9 @@ on:
     # ^ this lets you click "Run workflow" in the GitHub Actions tab
     #   to trigger a check manually, useful for testing.
 
+# The job only calls our own endpoint, so it needs no GitHub token access.
+permissions: {}
+
 jobs:
   check:
     runs-on: ubuntu-latest

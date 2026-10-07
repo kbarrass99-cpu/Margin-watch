@@ -68,23 +68,23 @@ async function syncSubscription(stripe: Stripe, subscriptionId: string) {
   const userId = subscription.metadata?.supabase_user_id;
   const isActive = ACTIVE_STATUSES.includes(subscription.status);
 
-  let plan: PlanId = 'free';
+  // null = leave the stored plan as it is.
+  let plan: PlanId | null = 'free';
   if (isActive) {
     const price = subscription.items.data[0]?.price;
-    const paidPlan = planForPrice(price);
-    if (!paidPlan) {
-      // Don't under-serve a paying customer over a config mismatch - give
-      // them the top tier and flag it so the price's lookup key gets fixed.
-      Sentry.captureMessage(`Unrecognised Stripe price ${price?.id} on ${subscription.id}`, 'warning');
+    plan = planForPrice(price);
+    if (!plan) {
+      // Never guess a tier: an unknown price keeps whatever plan the
+      // customer already has, and the price's lookup key needs fixing.
+      Sentry.captureMessage(`Unrecognised Stripe price ${price?.id} on ${subscription.id}`, 'error');
     }
-    plan = paidPlan ?? 'pro';
   }
 
   const supabase = createAdminClient();
   let query = supabase
     .from('profiles')
     .update({
-      plan,
+      ...(plan ? { plan } : {}),
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       updated_at: new Date().toISOString(),

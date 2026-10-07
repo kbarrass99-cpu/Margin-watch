@@ -57,6 +57,9 @@ again — from here on, Vercel will read your code directly from this repo.
 5. Click **Run** (bottom right). You should see "Success. No rows returned."
    This created your three database tables and locked them down so users
    can only see their own data.
+   Then repeat steps 4–5 for each of these files, in this order:
+   `schema-margin.sql`, `schema-billing.sql`, `schema-checks.sql`,
+   `schema-security.sql`.
 6. Now go to the gear icon **Project Settings** → **API**. You'll see three
    values you need to copy somewhere safe (a Notes app is fine):
    - **Project URL** → this is your `NEXT_PUBLIC_SUPABASE_URL`
@@ -65,11 +68,15 @@ again — from here on, Vercel will read your code directly from this repo.
      `SUPABASE_SERVICE_ROLE_KEY` — **keep this one truly secret**, never
      share it or put it anywhere public.
 
-**Optional but recommended for testing:** go to **Authentication** →
-**Providers** → **Email**, and turn **off** "Confirm email". This means
-when you sign up on your live site, you're logged in immediately instead
-of needing to click a confirmation email first. You can turn it back on
-later once real users are involved.
+**Keep "Confirm email" turned on** (**Authentication** → **Providers** →
+**Email**). Alerts are sent to the account's email address, so it must be
+one the user has proved they own; the app won't let unconfirmed accounts
+add products. Set up a Resend domain so Supabase can send these emails
+(see the troubleshooting note below).
+
+Also set **Authentication** → **URL Configuration**: the **Site URL** to
+your live address, and **Redirect URLs** to exactly
+`https://<your-domain>/auth/callback` (no wildcards).
 
 ---
 
@@ -104,7 +111,7 @@ later once real users are involved.
    | `SUPABASE_SERVICE_ROLE_KEY` | your Supabase service_role key |
    | `RESEND_API_KEY` | your Resend API key |
    | `ALERT_FROM_EMAIL` | `onboarding@resend.dev` |
-   | `CRON_SECRET` | make up any long random password, e.g. `mw-7f3k9x2q1p8z4v6n` |
+   | `CRON_SECRET` | a long random password: run `openssl rand -hex 32` and paste the result (don't reuse an example value) |
 
 5. Click **Deploy**. Wait 1–2 minutes. When it's done, click **Visit** —
    your site is live at a `.vercel.app` address!
@@ -151,9 +158,10 @@ supplier products for free (up to 5 products per account, by default).
   tool (explained in the original research doc) — try a different product
   URL, or a supplier like CJdropshipping, which tends to be more scraper-
   friendly than AliExpress.
-- **Signup says "Error sending confirmation email"** — go back to Step 2
-  and turn off "Confirm email" in Supabase, or set up a Resend domain so
-  Supabase can send its own auth emails.
+- **Signup says "Error sending confirmation email"** — set up a Resend
+  domain and connect it under Supabase **Authentication** → **SMTP
+  Settings** so Supabase can send its own auth emails. Don't turn off
+  "Confirm email".
 - **Dashboard shows "Not authenticated" / keeps redirecting to login** —
   double check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   in Vercel exactly match what's in your Supabase project settings, then

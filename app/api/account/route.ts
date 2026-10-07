@@ -24,17 +24,26 @@ export async function DELETE(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_subscription_id')
+    .select('stripe_customer_id, stripe_subscription_id')
     .eq('id', user.id)
     .single();
 
-  if (profile?.stripe_subscription_id) {
+  if (profile?.stripe_customer_id || profile?.stripe_subscription_id) {
     try {
       const stripe = getStripe();
-      const sub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
-      if (sub.status !== 'canceled' && sub.status !== 'incomplete_expired') {
-        await stripe.subscriptions.cancel(sub.id);
+      // Every live subscription on the customer, not just the one we have
+      // stored: a second checkout or a not-yet-synced webhook can leave others.
+      const ids = new Set<string>();
+      if (profile.stripe_customer_id) {
+        for await (const sub of stripe.subscriptions.list({ customer: profile.stripe_customer_id, status: 'all', limit: 100 })) {
+          if (sub.status !== 'canceled' && sub.status !== 'incomplete_expired') ids.add(sub.id);
+        }
       }
+      if (profile.stripe_subscription_id) {
+        const sub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+        if (sub.status !== 'canceled' && sub.status !== 'incomplete_expired') ids.add(sub.id);
+      }
+      for (const id of ids) await stripe.subscriptions.cancel(id);
     } catch (err) {
       // Don't delete the account if we couldn't stop billing - they'd keep
       // being charged with no way to log in and cancel.

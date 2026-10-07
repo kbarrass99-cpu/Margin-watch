@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { assertPublicHttpUrl } from './urlSafety';
+import { BlockedUrlError, safeGet } from './safeFetch';
 
 export type ScrapeResult = {
   ok: boolean;
@@ -9,7 +10,12 @@ export type ScrapeResult = {
   currency?: string;
   inStock?: boolean;
   rawStatus: string;
+  // The URL itself was refused by the safety check (not a site problem).
+  blocked?: boolean;
 };
+
+// Product pages are rarely over 1-2 MB; anything past this is ignored.
+const MAX_PAGE_BYTES = 3 * 1024 * 1024;
 
 // A normal desktop browser's User-Agent. Many sites block requests that
 // don't look like they came from a real browser.
@@ -20,11 +26,11 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   try {
     await assertPublicHttpUrl(url);
   } catch (err: any) {
-    return { ok: false, rawStatus: err?.message || 'This URL is not allowed' };
+    return { ok: false, blocked: true, rawStatus: err?.message || 'This URL is not allowed' };
   }
 
   const direct = await fetchDirect(url);
-  if (direct.ok) return direct;
+  if (direct.ok || direct.blocked) return direct;
 
   // Many suppliers (AliExpress in particular) block plain server-side
   // fetches outright. If a Firecrawl key is configured, retry through it -
@@ -43,40 +49,39 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
 async function fetchDirect(url: string): Promise<ScrapeResult> {
   try {
     // Follow redirects ourselves and re-check every hop, so a public URL can't
-    // bounce the scraper on to a private or cloud-metadata address.
+    // bounce the scraper on to a private or cloud-metadata address. safeGet
+    // also checks the address it actually connects to.
     let target = url;
-    let res: Response | null = null;
     // Don't let a slow/stuck page hang the whole check run.
     const signal = AbortSignal.timeout(15000);
     for (let hop = 0; hop <= 5; hop++) {
       if (hop > 0) await assertPublicHttpUrl(target);
-      res = await fetch(target, {
+      const res = await safeGet(target, {
         headers: {
           'User-Agent': USER_AGENT,
           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
         },
-        redirect: 'manual',
         signal,
+        maxBytes: MAX_PAGE_BYTES,
       });
-      const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
-      if (!location) break;
-      target = new URL(location, target).toString();
-      res = null;
+      if (res.location) {
+        target = new URL(res.location, target).toString();
+        continue;
+      }
+      if (res.body === null) {
+        return { ok: false, rawStatus: `Fetch failed with status ${res.status}` };
+      }
+      return parseProductHtml(res.body);
     }
-    if (!res) {
-      return { ok: false, rawStatus: 'The page redirected too many times' };
-    }
-
-    if (!res.ok) {
-      return { ok: false, rawStatus: `Fetch failed with status ${res.status}` };
-    }
-
-    return parseProductHtml(await res.text());
+    return { ok: false, rawStatus: 'The page redirected too many times' };
   } catch (err: any) {
+    if (err instanceof BlockedUrlError || err?.message === 'This URL is not allowed') {
+      return { ok: false, blocked: true, rawStatus: 'This URL is not allowed' };
+    }
     return {
       ok: false,
-      rawStatus: `Error fetching page: ${err?.message || 'unknown error'}`,
+      rawStatus: `Error fetching page: ${String(err?.message || 'unknown error').slice(0, 200)}`,
     };
   }
 }
@@ -99,12 +104,13 @@ async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
     });
 
     if (!res.ok) return null;
+    if (Number(res.headers.get('content-length') || 0) > 4 * MAX_PAGE_BYTES) return null;
 
     const body = await res.json();
     const html = body?.data?.rawHtml;
     if (!html) return null;
 
-    const result = parseProductHtml(html);
+    const result = parseProductHtml(String(html).slice(0, MAX_PAGE_BYTES));
     if (!result.ok) return null;
 
     return { ...result, rawStatus: `${result.rawStatus} (via Firecrawl fallback)` };
@@ -129,12 +135,13 @@ function parseProductHtml(html: string): ScrapeResult {
   const priceMatch = html.match(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/i);
   const stockMatch = html.match(/"availability"\s*:\s*"[^"]*(InStock|OutOfStock)[^"]*"/i);
 
-  if (priceMatch) {
+  const fallbackPrice = priceMatch ? cleanPrice(priceMatch[1]) : undefined;
+  if (fallbackPrice !== undefined) {
     return {
       ok: true,
-      title: ogTitle,
-      imageUrl: ogImage,
-      price: parseFloat(priceMatch[1]),
+      title: cleanTitle(ogTitle),
+      imageUrl: cleanImageUrl(ogImage),
+      price: fallbackPrice,
       inStock: stockMatch ? stockMatch[1] === 'InStock' : undefined,
       rawStatus: 'Parsed via fallback pattern match',
     };
@@ -142,8 +149,8 @@ function parseProductHtml(html: string): ScrapeResult {
 
   return {
     ok: false,
-    title: ogTitle,
-    imageUrl: ogImage,
+    title: cleanTitle(ogTitle),
+    imageUrl: cleanImageUrl(ogImage),
     rawStatus:
       'Could not find price data on this page. The site may have changed its layout or blocked the request.',
   };
@@ -170,15 +177,16 @@ function parseLdJson($: cheerio.CheerioAPI): ScrapeResult | null {
 
         if (isProduct) {
           const offers = Array.isArray(node.offers) ? node.offers[0] : node.offers;
-          const price = offers?.price ? parseFloat(offers.price) : undefined;
-          const currency = offers?.priceCurrency;
-          const availability: string | undefined = offers?.availability;
+          const price = cleanPrice(offers?.price);
+          const currency = cleanCurrency(offers?.priceCurrency);
+          const availability = typeof offers?.availability === 'string' ? offers.availability : undefined;
           const inStock = availability ? availability.toLowerCase().includes('instock') : undefined;
+          const image = Array.isArray(node.image) ? node.image[0] : node.image;
 
           return {
             ok: price !== undefined,
-            title: node.name,
-            imageUrl: Array.isArray(node.image) ? node.image[0] : node.image,
+            title: cleanTitle(node.name),
+            imageUrl: cleanImageUrl(typeof image === 'object' && image ? image.url : image),
             price,
             currency,
             inStock,
@@ -192,4 +200,34 @@ function parseLdJson($: cheerio.CheerioAPI): ScrapeResult | null {
   }
 
   return null;
+}
+
+// Everything below comes from the supplier's page, so it's checked before
+// it's stored, shown on the dashboard or put in an email.
+function cleanPrice(value: unknown): number | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const n = parseFloat(String(value));
+  return Number.isFinite(n) && n >= 0 && n < 1e9 ? n : undefined;
+}
+
+function cleanCurrency(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const code = value.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : undefined;
+}
+
+function cleanTitle(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const title = value.replace(/\s+/g, ' ').trim().slice(0, 300);
+  return title || undefined;
+}
+
+function cleanImageUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.length > 2048) return undefined;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
 }
