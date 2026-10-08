@@ -29,7 +29,7 @@ export default function HowItWorks() {
           <div className={tile}><PasteLinkTile /></div>
           <Caption
             title="Paste a supplier link and your sell price"
-            body="AliExpress, CJ, Spocket or any product page. We read the price, stock and variants straight away."
+            body="AliExpress, CJ, Alibaba, eBay, Amazon and more. We read the price and stock straight away."
           />
         </div>
         <div>

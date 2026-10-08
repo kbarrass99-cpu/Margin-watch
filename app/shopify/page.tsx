@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 const STEPS = [
   {
     title: 'Copy the supplier link',
-    body: 'Open the product you sell on Shopify and grab the supplier page you order from. AliExpress, CJ, Spocket or any other product page.',
+    body: 'Open the product you sell on Shopify and grab the supplier page you order from. AliExpress, CJ, Alibaba, eBay, Amazon or most Shopify stores.',
   },
   {
     title: 'Paste it with your Shopify price',

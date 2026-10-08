@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { checkOneProduct } from '@/lib/checkProduct';
 import { planFor, PLANS } from '@/lib/plans';
 import { assertPublicHttpUrl, normalizeHttpUrl } from '@/lib/urlSafety';
+import { unsupportedSupplierMessage } from '@/lib/suppliers';
 
 function limitMessage(plan: ReturnType<typeof planFor>) {
   const limit = PLANS[plan].productLimit;
@@ -74,6 +75,10 @@ export async function POST(request: Request) {
   if (!Number.isFinite(marginAlert) || marginAlert < 0 || marginAlert > 100) {
     return NextResponse.json({ error: 'Alert threshold must be between 0 and 100%' }, { status: 400 });
   }
+
+  // Say so up front rather than adding a product that can never be checked.
+  const unsupported = unsupportedSupplierMessage(rawUrl);
+  if (unsupported) return NextResponse.json({ error: unsupported }, { status: 400 });
 
   let sourceUrl: string;
   try {
