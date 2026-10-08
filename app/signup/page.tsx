@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import AuthShell from '@/components/auth/AuthShell';
 import Field, { inputClass } from '@/components/auth/Field';
 import SubmitButton from '@/components/auth/SubmitButton';
+import { SITE } from '@/lib/site';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -97,13 +98,13 @@ export default function SignupPage() {
           />
         </Field>
 
-        <Field id="password" label="Password" helper="At least 6 characters." error={error}>
+        <Field id="password" label="Password" helper="At least 8 characters." error={error}>
           <input
             id="password"
             type="password"
             autoComplete="new-password"
             required
-            minLength={6}
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             aria-invalid={Boolean(error)}
@@ -114,7 +115,8 @@ export default function SignupPage() {
 
         <SubmitButton loading={loading} idle="Create free account" busy="Creating account…" />
         <p className="text-xs text-zinc-500 leading-relaxed">
-          By creating an account you agree to our{' '}
+          {SITE.name} is for businesses. By creating an account you confirm you&apos;re using it for your
+          business, and you agree to our{' '}
           <Link href="/terms" className="underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900">
             Terms
           </Link>{' '}

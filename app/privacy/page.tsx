@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import LegalPage from '@/components/marketing/LegalPage';
-import { SITE, operatorDescription } from '@/lib/site';
+import { SITE, companyDescription } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: `Privacy Policy — ${SITE.name}`,
@@ -15,13 +15,16 @@ export default function PrivacyPage() {
       <section>
         <h2>Who we are</h2>
         <p>
-          {SITE.name} is run by {operatorDescription()} (&ldquo;we&rdquo;, &ldquo;us&rdquo;). We are the
-          controller of the personal data described here under the UK General Data Protection Regulation
+          {SITE.name} is run by {companyDescription()}, whose registered office is at{' '}
+          {SITE.company.registeredOffice} (&ldquo;we&rdquo;, &ldquo;us&rdquo;). We are the controller of the personal data described here under the UK General Data Protection Regulation
           (UK GDPR) and the Data Protection Act 2018. If you are in the European Economic Area (EEA), the EU
           General Data Protection Regulation also applies, and we treat your data to the same standard wherever
           you are in the world.
         </p>
-        <p>For any privacy question or request, email {email}.</p>
+        <p>
+          For any privacy question or request, email {email}.
+          {SITE.company.icoNumber && <> We are registered with the Information Commissioner&apos;s Office under number {SITE.company.icoNumber}.</>}
+        </p>
       </section>
 
       <section>
@@ -80,6 +83,10 @@ export default function PrivacyPage() {
           <li>
             <strong>Firecrawl</strong>: fetching some supplier pages. It receives the supplier page link only,
             not your personal details.
+          </li>
+          <li>
+            <strong>CJdropshipping and AliExpress</strong>: we read some supplier prices through their official
+            product APIs. They receive the product&apos;s ID only, not your personal details.
           </li>
         </ul>
         <p>

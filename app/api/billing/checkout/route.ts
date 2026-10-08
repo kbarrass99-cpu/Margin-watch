@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe, priceIdForPlan } from '@/lib/stripe';
 import { isBillingInterval, isPaidPlan, PLANS } from '@/lib/plans';
+import { SITE } from '@/lib/site';
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -63,6 +64,13 @@ export async function POST(request: Request) {
       metadata: { supabase_user_id: user.id },
       subscription_data: {
         metadata: { supabase_user_id: user.id },
+      },
+      // Shown above the pay button, so the customer sees what they agree to
+      // at the moment they pay.
+      custom_text: {
+        submit: {
+          message: `You're subscribing for your business and agree to the ${SITE.name} Terms (${SITE.url}/terms). Your plan renews automatically until you cancel, which you can do at any time from Billing in your dashboard.`,
+        },
       },
     });
 

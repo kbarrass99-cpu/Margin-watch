@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import LegalPage from '@/components/marketing/LegalPage';
-import { SITE, operatorDescription } from '@/lib/site';
+import { SITE, companyDescription } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: `Terms of Service — ${SITE.name}`,
@@ -16,8 +16,8 @@ export default function TermsPage() {
       <section>
         <h2>About these terms</h2>
         <p>
-          These terms are an agreement between you and {SITE.name}, which is run by{' '}
-          {operatorDescription()} (&ldquo;we&rdquo;, &ldquo;us&rdquo;). By creating an account you agree to them. Our{' '}
+          These terms are an agreement between you and {companyDescription()}, whose registered office is at{' '}
+          {SITE.company.registeredOffice} (&ldquo;we&rdquo;, &ldquo;us&rdquo;). We run {SITE.name}. By creating an account you agree to them. Our{' '}
           <Link href="/privacy">Privacy Policy</Link> explains how we handle your data.
         </p>
         <p>
