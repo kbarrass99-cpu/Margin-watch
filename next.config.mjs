@@ -8,16 +8,19 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+  // The site never needs the camera, microphone or location.
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
 const nextConfig = {
-  // Product images are plain <img> tags, so the next/image optimizer isn't
-  // used. No remotePatterns means it can't be used as an open image proxy.
+  // Product images are plain <img> tags and our own images are served as
+  // they are, so the next/image optimizer is switched off entirely: no
+  // image proxy endpoint, and nothing for image-processing bugs to reach.
+  images: { unoptimized: true },
+  // Don't advertise the framework in every response.
+  poweredByHeader: false,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
-  },
-  experimental: {
-    instrumentationHook: true,
   },
 };
 

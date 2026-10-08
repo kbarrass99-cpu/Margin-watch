@@ -4,8 +4,8 @@ import { cookies } from 'next/headers';
 // Use this inside Server Components and API routes.
 // It reads the logged-in user's session from cookies, so all queries
 // automatically respect that user's Row Level Security permissions.
-export function createClient() {
-  const cookieStore = cookies();
+export async function createClient() {
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

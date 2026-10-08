@@ -7,3 +7,6 @@ export async function register() {
     await import('./sentry.edge.config');
   }
 }
+
+// Reports errors thrown while rendering pages and API routes to Sentry.
+export { captureRequestError as onRequestError } from '@sentry/nextjs';

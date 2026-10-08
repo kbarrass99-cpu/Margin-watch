@@ -15,8 +15,9 @@ const ALERT_LABEL: Record<Alert['type'], string> = {
   margin_below_threshold: 'Margin below alert line',
 };
 
-export default async function ProductHistoryPage({ params }: { params: { id: string } }) {
-  const supabase = createClient();
+export default async function ProductHistoryPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,13 +27,13 @@ export default async function ProductHistoryPage({ params }: { params: { id: str
     supabase
       .from('tracked_products')
       .select('*, snapshots(*)')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase
       .from('alerts')
       .select('*')
-      .eq('tracked_product_id', params.id)
+      .eq('tracked_product_id', id)
       .order('created_at', { ascending: false })
       .limit(50),
   ]);

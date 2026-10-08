@@ -5,7 +5,7 @@ import { getStripe, priceIdForPlan } from '@/lib/stripe';
 import { isBillingInterval, isPaidPlan, PLANS } from '@/lib/plans';
 
 export async function POST(request: Request) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
