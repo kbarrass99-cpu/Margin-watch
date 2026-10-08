@@ -11,7 +11,7 @@ const spring = { type: 'spring' as const, stiffness: 100, damping: 20 };
 const URLS = [
   'aliexpress.com/item/1005006213847192.html',
   'cjdropshipping.com/product/linen-tote-p-1729',
-  'spocket.co/products/led-desk-lamp-warm-3k',
+  'ebay.co.uk/itm/375119189634',
 ];
 
 export const PasteLinkTile = memo(function PasteLinkTile() {

@@ -3,6 +3,9 @@ import { assertPublicHttpUrl } from './urlSafety';
 import { BlockedUrlError, safeGet } from './safeFetch';
 import { aliexpressConfigured, fetchAliExpressProduct, isAliExpressUrl, resolveProductId } from './aliexpress';
 import { cjConfigured, cjProductIdFromUrl, fetchCjProduct, isCjUrl } from './cjdropshipping';
+import { countryForUrl, parseKnownSite } from './supplierParsers';
+import { unsupportedSupplierMessage } from './suppliers';
+import { cleanCurrency, cleanImageUrl, cleanPrice, cleanTitle, parseMoney } from './scrapeValues';
 
 export type ScrapeResult = {
   ok: boolean;
@@ -19,6 +22,7 @@ export type ScrapeResult = {
 // Signs that a site served a bot check / CAPTCHA page instead of the product.
 const ROBOT_CHECK = /captcha|are you a robot|check if you are a robot|not a robot|human verification|unusual traffic|x5secdata|_____tmd_____/i;
 const ROBOT_CHECK_STATUS = 'This supplier showed a robot check instead of the product page, so the price could not be read.';
+const DEAD_LINK_STATUS = "The supplier says this page doesn't exist any more. The product may have been removed: check the link still opens.";
 
 // Product pages are rarely over 1-2 MB; anything past this is ignored.
 const MAX_PAGE_BYTES = 3 * 1024 * 1024;
@@ -34,6 +38,10 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   } catch (err: any) {
     return { ok: false, blocked: true, rawStatus: err?.message || 'This URL is not allowed' };
   }
+
+  // Suppliers that can't be read at all: say so instead of failing every check.
+  const unsupported = unsupportedSupplierMessage(url);
+  if (unsupported) return { ok: false, rawStatus: unsupported };
 
   // AliExpress blocks automated page visits with a robot check, so its
   // products are read through the official AliExpress API when configured.
@@ -61,8 +69,11 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   // report that honestly rather than trying to get around it.
   if (process.env.FIRECRAWL_API_KEY) {
     const viaFirecrawl = await fetchViaFirecrawl(url);
-    // Report Firecrawl's robot check too: it says more than the plain fetch's failure.
-    if (viaFirecrawl && (viaFirecrawl.ok || viaFirecrawl.rawStatus === ROBOT_CHECK_STATUS)) return viaFirecrawl;
+    // A robot check or missing page reported by Firecrawl says more than the
+    // plain fetch's failure.
+    if (viaFirecrawl && (viaFirecrawl.ok || [ROBOT_CHECK_STATUS, DEAD_LINK_STATUS].includes(viaFirecrawl.rawStatus))) {
+      return viaFirecrawl;
+    }
   }
 
   return direct;
@@ -91,10 +102,11 @@ async function fetchDirect(url: string): Promise<ScrapeResult> {
         target = new URL(res.location, target).toString();
         continue;
       }
+      if (res.status === 404 || res.status === 410) return { ok: false, rawStatus: DEAD_LINK_STATUS };
       if (res.body === null) {
         return { ok: false, rawStatus: `Fetch failed with status ${res.status}` };
       }
-      return parseProductHtml(res.body);
+      return parseProductHtml(res.body, target);
     }
     return { ok: false, rawStatus: 'The page redirected too many times' };
   } catch (err: any) {
@@ -120,7 +132,8 @@ async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
         url,
         formats: ['rawHtml'],
         proxy: 'basic',
-        location: { country: 'US' },
+        // Browse as a local visitor: some shops hide prices from other countries.
+        location: { country: countryForUrl(url) },
       }),
       signal: AbortSignal.timeout(30000),
     });
@@ -129,10 +142,16 @@ async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
     if (Number(res.headers.get('content-length') || 0) > 4 * MAX_PAGE_BYTES) return null;
 
     const body = await res.json();
+    // Firecrawl returns the page even when the shop answered with an error.
+    // Error pages are full of other products' prices, so never read them.
+    const status = Number(body?.data?.metadata?.statusCode) || 200;
+    if (status === 404 || status === 410) return { ok: false, rawStatus: DEAD_LINK_STATUS };
+    if (status >= 400) return null;
+
     const html = body?.data?.rawHtml;
     if (!html) return null;
 
-    const result = parseProductHtml(String(html).slice(0, MAX_PAGE_BYTES));
+    const result = parseProductHtml(String(html).slice(0, MAX_PAGE_BYTES), url);
     if (!result.ok) return result;
 
     return { ...result, rawStatus: `${result.rawStatus} (via Firecrawl fallback)` };
@@ -141,41 +160,92 @@ async function fetchViaFirecrawl(url: string): Promise<ScrapeResult | null> {
   }
 }
 
-function parseProductHtml(html: string): ScrapeResult {
+function parseProductHtml(html: string, url: string): ScrapeResult {
   const $ = cheerio.load(html);
 
-  // Strategy 1: schema.org structured product data. Most e-commerce
-  // platforms embed this, and it's far more stable than parsing the
-  // visual page layout.
-  const ldJsonResult = parseLdJson($);
-  if (ldJsonResult) return ldJsonResult;
-
-  // Strategy 2: fall back to Open Graph tags + a loose price pattern
-  // search across the raw page source.
-  const ogTitle = $('meta[property="og:title"]').attr('content');
-  const ogImage = $('meta[property="og:image"]').attr('content');
-  const priceMatch = html.match(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/i);
-  const stockMatch = html.match(/"availability"\s*:\s*"[^"]*(InStock|OutOfStock)[^"]*"/i);
-
-  const fallbackPrice = priceMatch ? cleanPrice(priceMatch[1]) : undefined;
-  if (fallbackPrice !== undefined) {
-    return {
-      ok: true,
-      title: cleanTitle(ogTitle),
-      imageUrl: cleanImageUrl(ogImage),
-      price: fallbackPrice,
-      inStock: stockMatch ? stockMatch[1] === 'InStock' : undefined,
-      rawStatus: 'Parsed via fallback pattern match',
-    };
-  }
+  // Readers are tried from most to least precise. A wrong price is worse
+  // than no price (it can send a false alert), so the loose pattern match
+  // at the end only accepts a page with one unambiguous price.
+  const result =
+    parseKnownSite($, html, url) ??
+    // Schema.org product data: most shops embed it, and it's far more stable
+    // than the visual layout.
+    parseLdJson($) ??
+    parseMicrodata($) ??
+    parseMetaPrice($) ??
+    parseSinglePrice($, html);
+  if (result) return result;
 
   return {
     ok: false,
-    title: cleanTitle(ogTitle),
-    imageUrl: cleanImageUrl(ogImage),
+    title: cleanTitle($('meta[property="og:title"]').attr('content')),
+    imageUrl: cleanImageUrl($('meta[property="og:image"]').attr('content')),
     rawStatus: ROBOT_CHECK.test(html)
       ? ROBOT_CHECK_STATUS
       : 'Could not find price data on this page. The site may have changed its layout or blocked the request.',
+  };
+}
+
+function pageTitle($: cheerio.CheerioAPI): string | undefined {
+  return cleanTitle($('meta[property="og:title"]').attr('content') || $('title').first().text());
+}
+
+function pageImage($: cheerio.CheerioAPI): string | undefined {
+  return cleanImageUrl($('meta[property="og:image"]').attr('content'));
+}
+
+// Schema.org microdata: <span itemprop="price" content="3.54">. The first one
+// on the page is the product's own; later ones belong to recommendations.
+function parseMicrodata($: cheerio.CheerioAPI): ScrapeResult | null {
+  const el = $('[itemprop="price"]').first();
+  if (!el.length) return null;
+  const shown = parseMoney(el.attr('content') ?? el.text());
+  if (shown.price === undefined) return null;
+  const currencyEl = $('[itemprop="priceCurrency"]').first();
+  const availability = String($('[itemprop="availability"]').first().attr('href') ?? $('[itemprop="availability"]').first().attr('content') ?? '');
+  return {
+    ok: true,
+    title: pageTitle($),
+    imageUrl: pageImage($),
+    price: shown.price,
+    currency: cleanCurrency(currencyEl.attr('content') ?? currencyEl.text()) ?? shown.currency,
+    inStock: /instock/i.test(availability) ? true : /outofstock/i.test(availability) ? false : undefined,
+    rawStatus: 'Parsed via product price tag (microdata)',
+  };
+}
+
+// <meta property="product:price:amount" content="..."> (Open Graph product tags).
+function parseMetaPrice($: cheerio.CheerioAPI): ScrapeResult | null {
+  const price = cleanPrice($('meta[property="product:price:amount"], meta[property="og:price:amount"]').first().attr('content'));
+  if (price === undefined) return null;
+  return {
+    ok: true,
+    title: pageTitle($),
+    imageUrl: pageImage($),
+    price,
+    currency: cleanCurrency($('meta[property="product:price:currency"], meta[property="og:price:currency"]').first().attr('content')),
+    rawStatus: 'Parsed via product price tags (meta)',
+  };
+}
+
+// Last resort: a "price" value in the page source, used only when every one
+// on the page is the same, i.e. there are no other products' prices to mix up.
+function parseSinglePrice($: cheerio.CheerioAPI, html: string): ScrapeResult | null {
+  const prices = new Set<number>();
+  for (const m of html.matchAll(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/gi)) {
+    const p = cleanPrice(m[1]);
+    if (p !== undefined) prices.add(p);
+    if (prices.size > 1) return null;
+  }
+  if (prices.size !== 1) return null;
+  const stockMatch = html.match(/"availability"\s*:\s*"[^"]*(InStock|OutOfStock)[^"]*"/i);
+  return {
+    ok: true,
+    title: pageTitle($),
+    imageUrl: pageImage($),
+    price: [...prices][0],
+    inStock: stockMatch ? stockMatch[1] === 'InStock' : undefined,
+    rawStatus: 'Parsed via fallback pattern match',
   };
 }
 
@@ -200,14 +270,16 @@ function parseLdJson($: cheerio.CheerioAPI): ScrapeResult | null {
 
         if (isProduct) {
           const offers = Array.isArray(node.offers) ? node.offers[0] : node.offers;
-          const price = cleanPrice(offers?.price);
+          const price = cleanPrice(offers?.price ?? offers?.lowPrice);
+          // No price here (e.g. "choose an option" pages): let the other readers try.
+          if (price === undefined) continue;
           const currency = cleanCurrency(offers?.priceCurrency);
           const availability = typeof offers?.availability === 'string' ? offers.availability : undefined;
           const inStock = availability ? availability.toLowerCase().includes('instock') : undefined;
           const image = Array.isArray(node.image) ? node.image[0] : node.image;
 
           return {
-            ok: price !== undefined,
+            ok: true,
             title: cleanTitle(node.name),
             imageUrl: cleanImageUrl(typeof image === 'object' && image ? image.url : image),
             price,
@@ -223,34 +295,4 @@ function parseLdJson($: cheerio.CheerioAPI): ScrapeResult | null {
   }
 
   return null;
-}
-
-// Everything below comes from the supplier's page, so it's checked before
-// it's stored, shown on the dashboard or put in an email.
-function cleanPrice(value: unknown): number | undefined {
-  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
-  const n = parseFloat(String(value));
-  return Number.isFinite(n) && n >= 0 && n < 1e9 ? n : undefined;
-}
-
-function cleanCurrency(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const code = value.trim().toUpperCase();
-  return /^[A-Z]{3}$/.test(code) ? code : undefined;
-}
-
-function cleanTitle(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const title = value.replace(/\s+/g, ' ').trim().slice(0, 300);
-  return title || undefined;
-}
-
-function cleanImageUrl(value: unknown): string | undefined {
-  if (typeof value !== 'string' || value.length > 2048) return undefined;
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
 }
