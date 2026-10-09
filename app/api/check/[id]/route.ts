@@ -8,8 +8,9 @@ import { planFor, PLANS } from '@/lib/plans';
 // so a product can be checked by hand at most this often.
 const COOLDOWN_MS = 60_000;
 
-export async function POST(_: Request, { params }: { params: { id: string } }) {
-  const supabase = createClient();
+export async function POST(_: Request, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -19,7 +20,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
   const { data: product, error } = await supabase
     .from('tracked_products')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user.id)
     .single();
 

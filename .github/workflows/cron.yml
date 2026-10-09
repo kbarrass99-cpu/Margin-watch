@@ -2,9 +2,10 @@ name: Price & Stock Check
 
 on:
   schedule:
-    # Runs every 6 hours. Change the "*/6" to "*/12" for every 12 hours,
-    # or "0 8 * * *" to run once a day at 8am UTC.
-    - cron: '0 */6 * * *'
+    # Runs every 6 hours, at 17 minutes past. GitHub delays and sometimes
+    # drops runs scheduled on the hour (its busiest time), so this avoids :00.
+    # Change the "*/6" to "*/12" for every 12 hours.
+    - cron: '17 */6 * * *'
   workflow_dispatch: {}
     # ^ this lets you click "Run workflow" in the GitHub Actions tab
     #   to trigger a check manually, useful for testing.

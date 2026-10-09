@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { LogoMark } from '@/components/Logo';
-import { SITE } from '@/lib/site';
+import { SITE, companyFooterLine } from '@/lib/site';
 
 export default function SiteFooter() {
   return (
@@ -26,6 +26,11 @@ export default function SiteFooter() {
           <Link href="/terms" className="text-zinc-600 hover:text-zinc-900">Terms</Link>
           <a href={`mailto:${SITE.supportEmail}`} className="text-zinc-600 hover:text-zinc-900">Contact</a>
         </div>
+      </div>
+      <div className="border-t border-zinc-200">
+        <p className="max-w-7xl mx-auto px-4 sm:px-6 py-5 text-xs text-zinc-500 leading-relaxed">
+          &copy; {new Date().getFullYear()} {SITE.company.name}. {companyFooterLine()}
+        </p>
       </div>
     </footer>
   );

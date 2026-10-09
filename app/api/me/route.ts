@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { planFor, PLANS } from '@/lib/plans';
 
 export async function GET() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -15,7 +15,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Type DELETE to confirm.' }, { status: 400 });
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { SITE } from './site';
+import { SITE, companyFooterLine } from './site';
 
 function escapeHtml(value: string): string {
   return value
@@ -53,9 +53,9 @@ export async function sendAlertEmail(opts: {
             You're receiving this because you're tracking this product on ${SITE.name}.
             To change your alerts or stop tracking it, open your
             <a href="${SITE.url}/dashboard" style="color:#71717a;">dashboard</a>.<br />
-            ${SITE.operatorName ? `${SITE.name} (${SITE.operatorName})` : SITE.name} &middot;
             <a href="mailto:${SITE.supportEmail}" style="color:#71717a;">${SITE.supportEmail}</a> &middot;
-            <a href="${SITE.url}/privacy" style="color:#71717a;">Privacy</a>
+            <a href="${SITE.url}/privacy" style="color:#71717a;">Privacy</a><br />
+            ${escapeHtml(companyFooterLine())}
           </p>
         </div>
       `,
