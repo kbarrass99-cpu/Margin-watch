@@ -5,10 +5,12 @@ import SiteFooter from '@/components/marketing/SiteFooter';
 import HeroAlert from '@/components/marketing/HeroAlert';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import MagneticLink from '@/components/marketing/MagneticLink';
+import MarketingMotion from '@/components/marketing/MarketingMotion';
 
 export default function Home() {
   return (
     <main className="min-h-[100dvh]">
+      <MarketingMotion />
       <SiteHeader />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-14 md:gap-10 items-center">

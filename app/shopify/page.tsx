@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import SiteHeader from '@/components/marketing/SiteHeader';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import MagneticLink from '@/components/marketing/MagneticLink';
+import MarketingMotion from '@/components/marketing/MarketingMotion';
 import ScrollMarginVisual from '@/components/marketing/shopify/ScrollMarginVisual';
 import ChangeMarquee from '@/components/marketing/shopify/ChangeMarquee';
 import Reveal from '@/components/marketing/shopify/Reveal';
@@ -31,6 +32,7 @@ const STEPS = [
 export default function ShopifyPage() {
   return (
     <main className="min-h-[100dvh]">
+      <MarketingMotion />
       <SiteHeader />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-24 md:pt-28 md:pb-36">
