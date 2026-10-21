@@ -11,8 +11,8 @@ export const SITE = {
     number: '17507839',
     registeredIn: 'England and Wales',
     registeredOffice: '66 Paul Street, London, EC2A 4NA, United Kingdom',
-    // Set once the ICO data protection fee is paid (ico.org.uk).
-    icoNumber: null as string | null,
+    // ICO data protection register entry (ico.org.uk/ESDWebPages/Search).
+    icoNumber: 'ZC270041' as string | null,
   },
 };
 
