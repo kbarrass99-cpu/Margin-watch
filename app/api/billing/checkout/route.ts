@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       customer: profile?.stripe_customer_id || undefined,
       customer_email: profile?.stripe_customer_id ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl}/dashboard?upgraded=1`,
+      success_url: `${appUrl}/dashboard?upgraded=1&plan=${body.plan}&interval=${interval}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/dashboard`,
       // This is how the webhook knows which Supabase user just paid.
       client_reference_id: user.id,

@@ -22,7 +22,16 @@ import {
   type Change,
   type ProductWithSnapshots,
 } from '@/lib/margin';
-import { PLANS, formatPrice, type BillingInterval, type PaidPlanId, type PlanId } from '@/lib/plans';
+import {
+  PLANS,
+  formatPrice,
+  isBillingInterval,
+  isPaidPlan,
+  type BillingInterval,
+  type PaidPlanId,
+  type PlanId,
+} from '@/lib/plans';
+import { measureConversion } from '@/lib/adsPixel';
 
 type Me = {
   email: string;
@@ -58,7 +67,28 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setJustUpgraded(new URLSearchParams(window.location.search).get('upgraded') === '1');
+      const params = new URLSearchParams(window.location.search);
+      const upgraded = params.get('upgraded') === '1';
+      setJustUpgraded(upgraded);
+      // Back from Stripe Checkout: report the subscription to OpenAI Ads
+      // (only with cookie consent). The checkout session id stops a page
+      // refresh from counting it twice.
+      const boughtPlan = params.get('plan');
+      const boughtInterval = params.get('interval');
+      if (upgraded && isPaidPlan(boughtPlan) && isBillingInterval(boughtInterval)) {
+        const price =
+          boughtInterval === 'year' ? PLANS[boughtPlan].yearlyPrice : PLANS[boughtPlan].monthlyPrice;
+        measureConversion(
+          'subscription_created',
+          {
+            type: 'plan_enrollment',
+            plan_id: `${boughtPlan}_${boughtInterval}ly`,
+            amount: Math.round(price * 100),
+            currency: 'USD',
+          },
+          params.get('session_id') ? { event_id: params.get('session_id')! } : undefined
+        );
+      }
     }
   }, []);
 

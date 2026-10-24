@@ -9,6 +9,7 @@ import AuthShell from '@/components/auth/AuthShell';
 import Field, { inputClass } from '@/components/auth/Field';
 import SubmitButton from '@/components/auth/SubmitButton';
 import { SITE } from '@/lib/site';
+import { measureConversion } from '@/lib/adsPixel';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -36,6 +37,8 @@ export default function SignupPage() {
       setError(error.message);
       return;
     }
+
+    measureConversion('registration_completed', { type: 'customer_action' });
 
     if (data.session) {
       // Email confirmation is off, so we're logged in immediately.

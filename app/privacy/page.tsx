@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   const email = <a href={`mailto:${SITE.supportEmail}`}>{SITE.supportEmail}</a>;
 
   return (
-    <LegalPage title="Privacy Policy">
+    <LegalPage title="Privacy Policy" updated={SITE.privacyUpdated}>
       <section>
         <h2>Who we are</h2>
         <p>
@@ -67,6 +67,10 @@ export default function PrivacyPage() {
             running a reliable, secure service.
           </li>
           <li>To keep financial records we are required to keep by law. Lawful basis: legal obligation.</li>
+          <li>
+            To measure whether our ads work, only if you accept advertising cookies. Lawful basis: your
+            consent, which you can withdraw at any time.
+          </li>
         </ul>
         <p>We do not sell your data, use it for advertising, or make automated decisions about you that have legal or similarly significant effects.</p>
       </section>
@@ -87,6 +91,10 @@ export default function PrivacyPage() {
           <li>
             <strong>CJdropshipping and AliExpress</strong>: we read some supplier prices through their official
             product APIs. They receive the product&apos;s ID only, not your personal details.
+          </li>
+          <li>
+            <strong>OpenAI</strong>: measuring our ads in ChatGPT, only if you accept advertising cookies. See
+            Cookies below.
           </li>
         </ul>
         <p>
@@ -111,11 +119,17 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
-      <section>
+      <section id="cookies">
         <h2>Cookies</h2>
         <p>
-          We only use the cookies needed to keep you signed in. We do not use analytics or advertising cookies,
-          so we do not ask for cookie consent. If that changes, we will ask first.
+          We use cookies to keep you signed in. These are essential, so they are always on.
+        </p>
+        <p>
+          If you accept advertising cookies, we also load OpenAI&apos;s ads measurement pixel. It uses cookies
+          and similar technology to tell us whether people who saw our ads in ChatGPT went on to create an
+          account or subscribe, and it records those events. We do not send OpenAI your name, email address
+          or payment details. If you reject, the pixel is never loaded. You can change your answer at any
+          time with <strong>Cookie settings</strong> at the bottom of every page.
         </p>
       </section>
 
