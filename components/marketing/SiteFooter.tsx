@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LogoMark } from '@/components/Logo';
+import { CookieSettingsButton } from '@/components/CookieConsent';
 import { SITE, companyFooterLine } from '@/lib/site';
 
 export default function SiteFooter() {
@@ -25,6 +26,7 @@ export default function SiteFooter() {
           <Link href="/privacy" className="text-zinc-600 hover:text-zinc-900">Privacy</Link>
           <Link href="/terms" className="text-zinc-600 hover:text-zinc-900">Terms</Link>
           <a href={`mailto:${SITE.supportEmail}`} className="text-zinc-600 hover:text-zinc-900">Contact</a>
+          <CookieSettingsButton className="text-left text-zinc-600 hover:text-zinc-900" />
         </div>
       </div>
       <div className="border-t border-zinc-200">
