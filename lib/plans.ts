@@ -14,6 +14,14 @@ export const PLANS: Record<
 
 export const PLAN_ORDER: PlanId[] = ['free', 'starter', 'pro'];
 
+// New subscribers get a free trial of any paid plan. Anyone who has had a
+// Stripe customer record before (a past subscription or trial) pays from day one.
+export const TRIAL_DAYS = 7;
+
+export function trialEligible(stripeCustomerId: string | null | undefined): boolean {
+  return !stripeCustomerId;
+}
+
 export function isPaidPlan(value: unknown): value is PaidPlanId {
   return value === 'starter' || value === 'pro';
 }

@@ -64,15 +64,18 @@ function priceLines(plan: PaidPlanId, interval: BillingInterval) {
 }
 
 // With onChoose (dashboard) paid plans start checkout; without it (landing
-// page) every plan links to signup.
+// page) every plan links to signup. trialDays is set when the visitor would
+// get a free trial of a paid plan.
 export default function PricingTable({
   currentPlan,
   onChoose,
   busy = false,
+  trialDays,
 }: {
   currentPlan?: PlanId;
   onChoose?: (plan: PaidPlanId, interval: BillingInterval) => void;
   busy?: boolean;
+  trialDays?: number;
 }) {
   const [intervals, setIntervals] = useState<Record<PaidPlanId, BillingInterval>>({ starter: 'year', pro: 'year' });
   const setInterval = (plan: PaidPlanId) => (interval: BillingInterval) =>
@@ -85,11 +88,20 @@ export default function PricingTable({
       ? 'bg-white text-zinc-900 hover:bg-zinc-100'
       : 'border border-zinc-300 text-zinc-800 hover:border-zinc-400 bg-white';
 
+    const trialNote = trialDays ? (
+      <p className={`mt-2 text-center text-xs ${featured ? 'text-zinc-400' : 'text-zinc-500'}`}>
+        Free for {trialDays} days, then billed. Cancel any time.
+      </p>
+    ) : null;
+
     if (!onChoose) {
       return (
-        <Link href="/signup" className={`${base} ${style}`}>
-          {id === 'free' ? 'Start free' : `Get ${PLANS[id].name}`}
-        </Link>
+        <>
+          <Link href="/signup" className={`${base} ${style}`}>
+            {id === 'free' ? 'Start free' : trialDays ? `Try ${PLANS[id].name} free for ${trialDays} days` : `Get ${PLANS[id].name}`}
+          </Link>
+          {id !== 'free' && trialNote}
+        </>
       );
     }
     if (id === 'free') {
@@ -102,9 +114,16 @@ export default function PricingTable({
     }
     const interval = intervals[id];
     return (
-      <button type="button" onClick={() => onChoose(id, interval)} disabled={busy} className={`${base} ${style}`}>
-        {busy ? 'Opening checkout…' : `Choose ${PLANS[id].name} ${interval === 'year' ? 'yearly' : 'monthly'}`}
-      </button>
+      <>
+        <button type="button" onClick={() => onChoose(id, interval)} disabled={busy} className={`${base} ${style}`}>
+          {busy
+            ? 'Opening checkout…'
+            : trialDays
+              ? `Start ${trialDays}-day free trial`
+              : `Choose ${PLANS[id].name} ${interval === 'year' ? 'yearly' : 'monthly'}`}
+        </button>
+        {trialNote}
+      </>
     );
   }
 
