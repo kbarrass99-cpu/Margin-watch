@@ -27,6 +27,7 @@ import {
   formatPrice,
   isBillingInterval,
   isPaidPlan,
+  TRIAL_DAYS,
   type BillingInterval,
   type PaidPlanId,
   type PlanId,
@@ -37,6 +38,7 @@ type Me = {
   email: string;
   plan: PlanId;
   limit: number;
+  trialEligible?: boolean;
 };
 
 export default function DashboardClient({ userEmail }: { userEmail: string }) {
@@ -46,6 +48,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   const [error, setError] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState(false);
   const [justUpgraded, setJustUpgraded] = useState(false);
+  const [trialStarted, setTrialStarted] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
   const [view, setView] = useState<'attention' | 'all'>('all');
   const [query, setQuery] = useState('');
@@ -69,7 +72,9 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const upgraded = params.get('upgraded') === '1';
+      const trial = params.get('trial') === '1';
       setJustUpgraded(upgraded);
+      setTrialStarted(upgraded && trial);
       // Back from Stripe Checkout: report the subscription to OpenAI Ads
       // (only with cookie consent). The checkout session id stops a page
       // refresh from counting it twice.
@@ -78,15 +83,19 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
       if (upgraded && isPaidPlan(boughtPlan) && isBillingInterval(boughtInterval)) {
         const price =
           boughtInterval === 'year' ? PLANS[boughtPlan].yearlyPrice : PLANS[boughtPlan].monthlyPrice;
+        const sessionId = params.get('session_id');
+        // A trial is not yet a payment: it is reported as trial_started.
         measureConversion(
-          'subscription_created',
-          {
-            type: 'plan_enrollment',
-            plan_id: `${boughtPlan}_${boughtInterval}ly`,
-            amount: Math.round(price * 100),
-            currency: 'USD',
-          },
-          params.get('session_id') ? { event_id: params.get('session_id')! } : undefined
+          trial ? 'trial_started' : 'subscription_created',
+          trial
+            ? { type: 'plan_enrollment', plan_id: `${boughtPlan}_${boughtInterval}ly` }
+            : {
+                type: 'plan_enrollment',
+                plan_id: `${boughtPlan}_${boughtInterval}ly`,
+                amount: Math.round(price * 100),
+                currency: 'USD',
+              },
+          sessionId ? { event_id: sessionId } : undefined
         );
       }
     }
@@ -234,7 +243,9 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
         {justUpgraded && (
           <p className="mb-6 flex items-center gap-2 text-sm text-emerald-700">
             <CheckCircle size={16} weight="bold" />
-            Thanks for upgrading. Your new plan can take a few seconds to show up.
+            {trialStarted
+              ? `Your ${TRIAL_DAYS}-day free trial has started. Your new plan can take a few seconds to show up.`
+              : 'Thanks for upgrading. Your new plan can take a few seconds to show up.'}
           </p>
         )}
 
@@ -246,7 +257,12 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                 Close
               </button>
             </div>
-            <PricingTable currentPlan={plan} onChoose={handleChoosePlan} busy={billingBusy} />
+            <PricingTable
+              currentPlan={plan}
+              onChoose={handleChoosePlan}
+              busy={billingBusy}
+              trialDays={me?.trialEligible ? TRIAL_DAYS : undefined}
+            />
           </section>
         )}
 

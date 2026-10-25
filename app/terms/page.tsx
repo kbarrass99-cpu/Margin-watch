@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import LegalPage from '@/components/marketing/LegalPage';
 import { SITE, companyDescription } from '@/lib/site';
+import { TRIAL_DAYS } from '@/lib/plans';
 
 export const metadata: Metadata = {
   title: `Terms of Service — ${SITE.name}`,
@@ -70,7 +71,16 @@ export default function TermsPage() {
             choose, at the prices in US dollars shown on our <Link href="/#pricing">pricing</Link> section,
             plus any tax that applies.
           </li>
+          <li>
+            If it is your first paid plan, it starts with a free trial (currently {TRIAL_DAYS} days). We take your card
+            details at the start but charge nothing until the trial ends. If you cancel before then, you pay nothing.
+            Otherwise your first payment is taken when the trial ends. One free trial per customer.
+          </li>
           <li>Paid plans renew automatically at the end of each month or year until you cancel.</li>
+          <li>
+            Discount codes apply only as described in the offer, can&apos;t be exchanged for cash, and may be withdrawn
+            at any time for new sign-ups.
+          </li>
           <li>
             You can cancel at any time from <strong>Billing</strong> in your dashboard. Your plan stays active until
             the end of the period you have paid for, then moves to Free. We do not refund unused months or part-months,

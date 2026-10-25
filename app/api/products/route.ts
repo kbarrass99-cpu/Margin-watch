@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkOneProduct } from '@/lib/checkProduct';
-import { planFor, PLANS } from '@/lib/plans';
+import { planFor, PLANS, trialEligible } from '@/lib/plans';
+import { sendFirstProductEmail, sendLimitReachedEmail } from '@/lib/lifecycleEmails';
 import { assertPublicHttpUrl, normalizeHttpUrl } from '@/lib/urlSafety';
 import { unsupportedSupplierMessage } from '@/lib/suppliers';
 
@@ -90,21 +91,26 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan')
+    .select('plan, stripe_customer_id')
     .eq('id', user.id)
     .single();
 
   const plan = planFor(profile?.plan);
   const limit = PLANS[plan].productLimit;
+  const emailOpts = { plan, trialEligible: trialEligible(profile?.stripe_customer_id) };
+  const { id: userId, email } = user;
+  // The "plan is full" email goes out when someone tries to add past the limit.
+  const limitReached = () => {
+    after(() => sendLimitReachedEmail(createAdminClient(), userId, email, emailOpts));
+    return NextResponse.json({ error: limitMessage(plan), limitReached: true }, { status: 403 });
+  };
 
   const { count } = await supabase
     .from('tracked_products')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
-  if ((count ?? 0) >= limit) {
-    return NextResponse.json({ error: limitMessage(plan), limitReached: true }, { status: 403 });
-  }
+  if ((count ?? 0) >= limit) return limitReached();
 
   // The database also enforces the limit (and the recipient address) itself,
   // so parallel requests or direct API calls can't get past it.
@@ -121,9 +127,7 @@ export async function POST(request: Request) {
     .select()
     .single();
 
-  if (error?.message?.includes('product limit reached')) {
-    return NextResponse.json({ error: limitMessage(plan), limitReached: true }, { status: 403 });
-  }
+  if (error?.message?.includes('product limit reached')) return limitReached();
   if (error) {
     console.error('Adding product failed', error);
     return NextResponse.json({ error: 'That product could not be added. Try again in a minute.' }, { status: 500 });
@@ -131,7 +135,11 @@ export async function POST(request: Request) {
 
   // Run the first check immediately so the user sees real data right away
   // instead of an empty card until the next scheduled run.
-  await checkOneProduct(createAdminClient(), inserted);
+  const admin = createAdminClient();
+  await checkOneProduct(admin, inserted);
+
+  // Sent after the response so adding a product stays fast.
+  if ((count ?? 0) === 0) after(() => sendFirstProductEmail(admin, userId, email, emailOpts));
 
   return NextResponse.json({ product: inserted });
 }

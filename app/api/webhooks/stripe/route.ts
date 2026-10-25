@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/nextjs';
 import type Stripe from 'stripe';
 import { getStripe, planForPrice } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { PlanId } from '@/lib/plans';
+import { formatPrice, type PlanId } from '@/lib/plans';
+import { sendTrialEndingEmail } from '@/lib/lifecycleEmails';
 
 // past_due keeps the paid plan so Stripe's automatic retries have time to
 // recover a failed renewal before the customer loses access.
@@ -29,6 +30,10 @@ export async function POST(request: Request) {
   try {
     const subscriptionId = subscriptionIdFor(event);
     if (subscriptionId) await syncSubscription(stripe, subscriptionId);
+    // Stripe sends this 3 days before a trial ends.
+    if (event.type === 'customer.subscription.trial_will_end') {
+      await remindTrialEnding(event.data.object as Stripe.Subscription);
+    }
   } catch (err) {
     // A non-2xx response makes Stripe retry the event, so a transient
     // database error can't silently leave a paying customer on Free.
@@ -99,4 +104,29 @@ async function syncSubscription(stripe: Stripe, subscriptionId: string) {
 
   const { error } = await query;
   if (error) throw error;
+}
+
+// Tells the customer when their free trial ends, what they'll be charged and
+// how to cancel. Sent once per subscription.
+async function remindTrialEnding(subscription: Stripe.Subscription) {
+  if (subscription.status !== 'trialing' || !subscription.trial_end) return;
+  const userId = subscription.metadata?.supabase_user_id;
+  const price = subscription.items.data[0]?.price;
+  const plan = planForPrice(price);
+  if (!userId || !plan || price?.unit_amount == null || !price.recurring) return;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error) throw error;
+  const email = data.user?.email;
+  if (!email) return;
+
+  const fullPrice = formatPrice(price.unit_amount / 100);
+  await sendTrialEndingEmail(admin, userId, email, {
+    subscriptionId: subscription.id,
+    plan,
+    trialEnd: new Date(subscription.trial_end * 1000),
+    amount: subscription.discount ? `${fullPrice}, less your discount,` : fullPrice,
+    interval: price.recurring.interval === 'year' ? 'year' : 'month',
+  });
 }

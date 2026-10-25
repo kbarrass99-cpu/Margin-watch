@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import PricingTable from '@/components/PricingTable';
+import { TRIAL_DAYS } from '@/lib/plans';
 import SiteHeader from '@/components/marketing/SiteHeader';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import HeroAlert from '@/components/marketing/HeroAlert';
@@ -56,7 +57,7 @@ export default function Home() {
               many products you track.
             </p>
           </div>
-          <PricingTable />
+          <PricingTable trialDays={TRIAL_DAYS} />
         </div>
       </section>
 
