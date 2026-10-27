@@ -1,6 +1,8 @@
 // Formats a price in the supplier's currency when we know it, e.g. "£12.40" or "€9.99".
 // Falls back to "$" because most supplier pages we read are priced in US dollars.
-const SYMBOLS: Record<string, string> = { USD: '$', GBP: '£', EUR: '€', CAD: 'CA$', AUD: 'A$', NZD: 'NZ$' };
+const SYMBOLS: Record<string, string> = {
+  USD: '$', GBP: '£', EUR: '€', CAD: 'CA$', AUD: 'A$', NZD: 'NZ$', JPY: '¥', INR: '₹',
+};
 
 // Only three-letter ISO codes are shown; anything else (including values a
 // supplier page tried to sneak in) falls back to "$".

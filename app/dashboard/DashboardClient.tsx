@@ -33,6 +33,7 @@ import {
   type PlanId,
 } from '@/lib/plans';
 import { measureConversion } from '@/lib/adsPixel';
+import type { Rates } from '@/lib/fx';
 
 type Me = {
   email: string;
@@ -43,6 +44,7 @@ type Me = {
 
 export default function DashboardClient({ userEmail }: { userEmail: string }) {
   const [products, setProducts] = useState<ProductWithSnapshots[]>([]);
+  const [rates, setRates] = useState<Rates | null>(null);
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +111,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
 
       if (productsRes.ok) {
         setProducts(productsData.products || []);
+        setRates(productsData.rates ?? null);
         setError(null);
       } else {
         setError(productsData.error || 'Your products could not be loaded. Refresh the page to try again.');
@@ -166,7 +169,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   // then lowest margin, products without a sell price last within each group.
   const rows = useMemo(() => {
     return products
-      .map((p) => ({ product: p, ...summarize(p) }))
+      .map((p) => ({ product: p, ...summarize(p, rates) }))
       .sort((a, b) => {
         const byStatus = STATUS_RANK[a.status] - STATUS_RANK[b.status];
         if (byStatus !== 0) return byStatus;
@@ -175,7 +178,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
         if (b.margin == null) return -1;
         return a.margin - b.margin;
       });
-  }, [products]);
+  }, [products, rates]);
   const attentionRows = rows.filter((r) => NEEDS_ATTENTION.includes(r.status));
   const atRiskCount = rows.filter((r) => r.status === 'at_risk').length;
   const outOfStockCount = rows.filter((r) => r.status === 'out_of_stock').length;
@@ -437,7 +440,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
               <>
                 <ul className="mt-4 md:hidden">
                   {visible.map(({ product }) => (
-                    <ProductCard key={product.id} product={product} onChanged={loadProducts} />
+                    <ProductCard key={product.id} product={product} rates={rates} onChanged={loadProducts} />
                   ))}
                 </ul>
 
@@ -457,7 +460,7 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                     </thead>
                     <tbody className="border-b border-zinc-100">
                       {visible.map(({ product }) => (
-                        <ProductRow key={product.id} product={product} onChanged={loadProducts} />
+                        <ProductRow key={product.id} product={product} rates={rates} onChanged={loadProducts} />
                       ))}
                     </tbody>
                   </table>

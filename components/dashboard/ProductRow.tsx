@@ -6,18 +6,27 @@ import { ArrowClockwise, ArrowUpRight, Flag, PencilSimple, Trash } from '@phosph
 import Sparkline from '@/components/Sparkline';
 import { hostOf, money, summarize, timeAgo, type ProductWithSnapshots } from '@/lib/margin';
 import { ProductSettings, ReportProblem, StatusChip, useProductActions } from '@/components/dashboard/productUi';
+import type { Rates } from '@/lib/fx';
 
 const iconButton =
   'inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.96] disabled:opacity-40';
 
 // Desktop table row (md and up). Phones get ProductCard instead.
-export default function ProductRow({ product, onChanged }: { product: ProductWithSnapshots; onChanged: () => void }) {
+export default function ProductRow({
+  product,
+  rates,
+  onChanged,
+}: {
+  product: ProductWithSnapshots;
+  rates?: Rates | null;
+  onChanged: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [reporting, setReporting] = useState(false);
   const { busy, error, checkNow, remove, save } = useProductActions(product.id, onChanged);
-  const s = summarize(product);
-  const { latest, lastPrice, lastAttempt, lastFailed, priceChange, margin, profitPerSale, atRisk, status, currency } = s;
+  const s = summarize(product, rates);
+  const { latest, lastPrice, lastAttempt, lastFailed, priceChange, margin, profitPerSale, atRisk, status, currency, sellCurrency, converted, cost } = s;
 
   return (
     <>
@@ -59,6 +68,11 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
               {Math.abs(priceChange).toFixed(1)}%
             </span>
           )}
+          {converted && cost != null && (
+            <span className="block font-mono text-xs tabular-nums text-zinc-500" title="Converted at today's exchange rate">
+              ≈ {money(cost, sellCurrency)}
+            </span>
+          )}
         </td>
 
         <td className="py-3 px-3 hidden lg:table-cell">
@@ -67,7 +81,7 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
 
         <td className="py-3 px-3 text-right whitespace-nowrap">
           {product.sell_price != null ? (
-            <span className="font-mono text-sm tabular-nums text-zinc-700">{money(product.sell_price, currency)}</span>
+            <span className="font-mono text-sm tabular-nums text-zinc-700">{money(product.sell_price, sellCurrency)}</span>
           ) : (
             <button type="button" onClick={() => setEditing(true)} className="text-xs font-medium text-accent hover:text-accent-hover">
               Add sell price
@@ -81,7 +95,7 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
               <span className={`font-mono text-sm tabular-nums ${atRisk ? 'font-semibold text-red-700' : 'text-zinc-900'}`}>
                 {margin.toFixed(1)}%<span className="text-xs font-normal text-zinc-500"> / {product.margin_alert_percent}%</span>
               </span>
-              <span className="font-mono text-xs tabular-nums text-zinc-500">{money(profitPerSale, currency)} a sale</span>
+              <span className="font-mono text-xs tabular-nums text-zinc-500">{money(profitPerSale, sellCurrency)} a sale</span>
             </div>
           ) : (
             <span className="text-xs text-zinc-500">—</span>
@@ -167,7 +181,8 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
               {editing && (
                 <ProductSettings
                   product={product}
-                  currency={currency}
+                  supplierCurrency={s.supplierCurrency}
+                  rates={rates}
                   supplierPrice={lastPrice}
                   busy={busy === 'save'}
                   onSave={save}

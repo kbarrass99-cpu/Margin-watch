@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isSellCurrency } from '@/lib/fx';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -11,7 +12,12 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const body = await request.json();
-  const updates: { sell_price?: number | null; extra_cost?: number | null; margin_alert_percent?: number } = {};
+  const updates: {
+    sell_price?: number | null;
+    sell_currency?: string | null;
+    extra_cost?: number | null;
+    margin_alert_percent?: number;
+  } = {};
 
   if ('sell_price' in body) {
     const sellPrice = body.sell_price === '' || body.sell_price == null ? null : Number(body.sell_price);
@@ -19,6 +25,13 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Sell price must be a positive number' }, { status: 400 });
     }
     updates.sell_price = sellPrice;
+  }
+
+  if ('sell_currency' in body) {
+    if (body.sell_currency != null && body.sell_currency !== '' && !isSellCurrency(body.sell_currency)) {
+      return NextResponse.json({ error: 'Choose a currency from the list.' }, { status: 400 });
+    }
+    updates.sell_currency = isSellCurrency(body.sell_currency) ? body.sell_currency : null;
   }
 
   if ('extra_cost' in body) {

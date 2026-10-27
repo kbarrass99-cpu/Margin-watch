@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { STATUS_LABEL, type ProductStatus, type ProductWithSnapshots } from '@/lib/margin';
 import { currencySymbol } from '@/lib/money';
+import { SELL_CURRENCIES, convert, type Rates } from '@/lib/fx';
 
 // Shared pieces for the desktop table row and the phone card.
 
@@ -86,30 +87,44 @@ const field =
 // Sell price, shipping and fees, and the alert line, edited together.
 export function ProductSettings({
   product,
-  currency,
+  supplierCurrency,
+  rates,
   supplierPrice,
   busy,
   onSave,
   onCancel,
 }: {
   product: ProductWithSnapshots;
-  currency: string | null;
+  supplierCurrency: string;
+  rates?: Rates | null;
+  // In the supplier's currency.
   supplierPrice: number | null;
   busy: boolean;
   onSave: (fields: Record<string, string | null>) => Promise<boolean>;
   onCancel: () => void;
 }) {
   const [sell, setSell] = useState(product.sell_price?.toString() ?? '');
+  const [sellCurrency, setSellCurrency] = useState(product.sell_currency ?? supplierCurrency);
   const [extra, setExtra] = useState(product.extra_cost?.toString() ?? '');
   const [alertAt, setAlertAt] = useState(String(product.margin_alert_percent ?? 20));
-  const sym = currencySymbol(currency);
+  const sym = currencySymbol(sellCurrency);
   const sellNum = sell === '' ? null : Number(sell);
-  const belowCost = sellNum != null && supplierPrice != null && sellNum <= supplierPrice + (Number(extra) || 0);
+  const cost = convert(supplierPrice, supplierCurrency, sellCurrency, rates);
+  const belowCost = sellNum != null && cost != null && sellNum <= cost + (Number(extra) || 0);
   const id = product.id;
+  // The supplier's currency may not be in the list (e.g. CNY); offer it too.
+  const options = SELL_CURRENCIES.some((c) => c.code === supplierCurrency)
+    ? SELL_CURRENCIES
+    : [...SELL_CURRENCIES, { code: supplierCurrency, name: "Supplier's currency" }];
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const ok = await onSave({ sell_price: sell || null, extra_cost: extra || null, margin_alert_percent: alertAt || '20' });
+    const ok = await onSave({
+      sell_price: sell || null,
+      sell_currency: sellCurrency === supplierCurrency && !product.sell_currency ? null : sellCurrency,
+      extra_cost: extra || null,
+      margin_alert_percent: alertAt || '20',
+    });
     if (ok) onCancel();
   }
 
@@ -119,13 +134,31 @@ export function ProductSettings({
         <label htmlFor={`sell-${id}`} className="text-xs font-medium text-zinc-700">
           You sell it for ({sym.trim()})
         </label>
-        <input id={`sell-${id}`} type="number" inputMode="decimal" min="0" step="0.01" autoFocus value={sell} onChange={(e) => setSell(e.target.value)} className={field} aria-describedby={`sell-help-${id}`} />
+        <div className="flex gap-2">
+          <select
+            aria-label="Your selling currency"
+            value={sellCurrency}
+            onChange={(e) => setSellCurrency(e.target.value)}
+            className="w-[5.5rem] shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-900/5"
+          >
+            {options.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+          <input id={`sell-${id}`} type="number" inputMode="decimal" min="0" step="0.01" autoFocus value={sell} onChange={(e) => setSell(e.target.value)} className={`${field} min-w-0`} aria-describedby={`sell-help-${id}`} />
+        </div>
         <p id={`sell-help-${id}`} className={`text-xs ${belowCost ? 'text-red-700' : 'text-zinc-500'}`}>
           {belowCost
             ? 'This is at or below what the product costs you.'
             : sell === '' && product.sell_price != null
               ? 'Leaving this empty turns margin alerts off.'
-              : 'Use the same currency as the supplier.'}
+              : sellCurrency !== supplierCurrency && cost != null
+                ? `Supplier price is about ${sym}${cost.toFixed(2)} at today's rate.`
+                : sellCurrency !== supplierCurrency
+                  ? "We'll convert the supplier's price at today's rate."
+                  : 'Same currency as the supplier.'}
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
@@ -133,7 +166,7 @@ export function ProductSettings({
           Shipping and fees per sale
         </label>
         <input id={`extra-${id}`} type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={extra} onChange={(e) => setExtra(e.target.value)} className={field} />
-        <p className="text-xs text-zinc-500">Counted as cost in your margin.</p>
+        <p className="text-xs text-zinc-500">In {sellCurrency}. Counted as cost in your margin.</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor={`alert-${id}`} className="text-xs font-medium text-zinc-700">

@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SUPPORTED_SUPPLIERS } from '@/lib/suppliers';
+import { SELL_CURRENCIES, guessCurrency, isSellCurrency } from '@/lib/fx';
+
+const CURRENCY_KEY = 'mc:sellCurrency';
 
 const input =
   'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base sm:text-sm transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-900/5 aria-[invalid=true]:border-red-400';
@@ -15,12 +18,29 @@ export default function AddProductForm({
 }) {
   const [url, setUrl] = useState('');
   const [sellPrice, setSellPrice] = useState('');
+  const [sellCurrency, setSellCurrency] = useState('USD');
   const [extraCost, setExtraCost] = useState('');
   const [alertAt, setAlertAt] = useState('20');
   const [showMore, setShowMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+
+  // The seller's currency: the last one they picked, or a guess from the browser.
+  useEffect(() => {
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(CURRENCY_KEY);
+    } catch {}
+    setSellCurrency(isSellCurrency(saved) ? saved : guessCurrency(navigator.language));
+  }, []);
+
+  function chooseCurrency(code: string) {
+    setSellCurrency(code);
+    try {
+      window.localStorage.setItem(CURRENCY_KEY, code);
+    } catch {}
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +55,7 @@ export default function AddProductForm({
         body: JSON.stringify({
           source_url: url,
           sell_price: sellPrice || null,
+          sell_currency: sellCurrency,
           extra_cost: extraCost || null,
           margin_alert_percent: alertAt || '20',
         }),
@@ -61,7 +82,7 @@ export default function AddProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_10rem_auto] gap-3 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_15rem_auto] gap-3 items-start">
         <div className="flex flex-col gap-2">
           <label htmlFor="add-url" className="text-xs font-medium text-zinc-700">
             Supplier product link
@@ -95,21 +116,36 @@ export default function AddProductForm({
           <label htmlFor="add-sell" className="text-xs font-medium text-zinc-700">
             Your sell price
           </label>
-          <input
-            id="add-sell"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            placeholder="24.99"
-            value={sellPrice}
-            onChange={(e) => setSellPrice(e.target.value)}
-            disabled={disabled}
-            aria-describedby="add-sell-helper"
-            className={`${input} font-mono`}
-          />
+          <div className="flex gap-2">
+            <select
+              aria-label="Your selling currency"
+              value={sellCurrency}
+              onChange={(e) => chooseCurrency(e.target.value)}
+              disabled={disabled}
+              className="w-[5.5rem] shrink-0 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-900/5 disabled:opacity-60"
+            >
+              {SELL_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code}
+                </option>
+              ))}
+            </select>
+            <input
+              id="add-sell"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="24.99"
+              value={sellPrice}
+              onChange={(e) => setSellPrice(e.target.value)}
+              disabled={disabled}
+              aria-describedby="add-sell-helper"
+              className={`${input} min-w-0 font-mono`}
+            />
+          </div>
           <p id="add-sell-helper" className="text-xs text-zinc-500">
-            Optional. Turns on margin alerts.
+            Optional. Turns on margin alerts. We convert the supplier&apos;s price for you.
           </p>
         </div>
         <button
@@ -125,7 +161,7 @@ export default function AddProductForm({
         <div className="grid grid-cols-2 gap-3 sm:max-w-md">
           <div className="flex flex-col gap-2">
             <label htmlFor="add-extra" className="text-xs font-medium text-zinc-700">
-              Shipping and fees per sale
+              Shipping and fees per sale ({sellCurrency})
             </label>
             <input id="add-extra" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={extraCost} onChange={(e) => setExtraCost(e.target.value)} className={`${input} font-mono`} />
           </div>

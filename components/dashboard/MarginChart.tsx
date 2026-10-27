@@ -1,4 +1,4 @@
-import { marginPercent, type PriceSnapshot } from '@/lib/margin';
+import { marginPercent, money, type PriceSnapshot } from '@/lib/margin';
 
 const W = 720;
 const H = 220;
@@ -18,18 +18,23 @@ export default function MarginChart({
   sellPrice,
   extraCost = 0,
   threshold,
+  costFactor = 1,
+  sellCurrency,
 }: {
   snapshots: PriceSnapshot[];
   sellPrice: number | null;
   extraCost?: number;
   threshold: number;
+  // Converts supplier prices into the seller's currency (today's rate); null if unknown.
+  costFactor?: number | null;
+  sellCurrency?: string | null;
 }) {
-  const showMargin = sellPrice != null && sellPrice > 0;
+  const showMargin = sellPrice != null && sellPrice > 0 && costFactor != null;
   const points = snapshots
     .filter((s) => s.price != null)
     .map((s) => ({
       t: new Date(s.checked_at).getTime(),
-      v: showMargin ? marginPercent(sellPrice, s.price, extraCost)! : s.price!,
+      v: showMargin ? marginPercent(sellPrice, s.price! * costFactor!, extraCost)! : s.price!,
     }));
 
   if (points.length < 2) {
@@ -87,7 +92,8 @@ export default function MarginChart({
       </svg>
       {showMargin && (
         <figcaption className="mt-2 text-xs text-zinc-500">
-          Margin uses your current sell price of <span className="font-mono">${sellPrice!.toFixed(2)}</span> for every check.
+          Margin uses your current sell price of <span className="font-mono">{money(sellPrice, sellCurrency)}</span> for every check
+          {costFactor !== 1 ? ", with supplier prices converted at today's exchange rate" : ''}.
         </figcaption>
       )}
     </figure>
