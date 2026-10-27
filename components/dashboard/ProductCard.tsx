@@ -4,17 +4,28 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { hostOf, money, summarize, timeAgo, type ProductWithSnapshots } from '@/lib/margin';
-import { ProductSettings, StatusChip, useProductActions } from '@/components/dashboard/productUi';
+import { ProductSettings, ReportProblem, StatusChip, useProductActions } from '@/components/dashboard/productUi';
+import type { Rates } from '@/lib/fx';
 
 const action =
   'inline-flex min-h-[44px] items-center justify-center rounded-lg px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 active:scale-[0.98] disabled:opacity-50';
 
 // Phone layout (below md): one product per block, the numbers that matter on one line.
-export default function ProductCard({ product, onChanged }: { product: ProductWithSnapshots; onChanged: () => void }) {
+export default function ProductCard({
+  product,
+  rates,
+  onChanged,
+}: {
+  product: ProductWithSnapshots;
+  rates?: Rates | null;
+  onChanged: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const { busy, error, checkNow, remove, save } = useProductActions(product.id, onChanged);
-  const { latest, lastPrice, lastAttempt, lastFailed, priceChange, margin, profitPerSale, atRisk, status, currency } = summarize(product);
+  const { latest, lastPrice, lastAttempt, lastFailed, priceChange, margin, profitPerSale, atRisk, status, currency, supplierCurrency, sellCurrency, converted, cost } =
+    summarize(product, rates);
 
   return (
     <li className={`border-t border-zinc-100 py-4 ${atRisk ? 'bg-red-50/70 -mx-4 px-4' : ''}`}>
@@ -47,17 +58,18 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
                 {Math.abs(priceChange).toFixed(1)}%
               </span>
             )}
+            {converted && cost != null && <span className="block text-xs text-zinc-500">≈ {money(cost, sellCurrency)}</span>}
           </dd>
         </div>
         <div>
           <dt className="text-[11px] text-zinc-500">You sell</dt>
-          <dd className="font-mono text-sm tabular-nums">{product.sell_price != null ? money(product.sell_price, currency) : '—'}</dd>
+          <dd className="font-mono text-sm tabular-nums">{product.sell_price != null ? money(product.sell_price, sellCurrency) : '—'}</dd>
         </div>
         <div>
           <dt className="text-[11px] text-zinc-500">Margin / alert</dt>
           <dd className={`font-mono text-sm tabular-nums ${atRisk ? 'font-semibold text-red-700' : ''}`}>
             {margin != null ? `${margin.toFixed(1)}% / ${product.margin_alert_percent}%` : '—'}
-            {profitPerSale != null && <span className="block text-xs font-normal text-zinc-500">{money(profitPerSale, currency)} a sale</span>}
+            {profitPerSale != null && <span className="block text-xs font-normal text-zinc-500">{money(profitPerSale, sellCurrency)} a sale</span>}
           </dd>
         </div>
       </dl>
@@ -66,6 +78,14 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
         <p className="mt-3 pl-[3.25rem] text-xs text-amber-800">
           Last check failed: {lastAttempt.raw_status.replace(/\.$/, '')}.
           {latest ? ` Showing the reading from ${timeAgo(latest.checked_at)}.` : ''}
+          {!reporting && !editing && (
+            <>
+              {' '}
+              <button type="button" onClick={() => setReporting(true)} className="font-medium text-amber-900 underline underline-offset-2">
+                Report this to us
+              </button>
+            </>
+          )}
         </p>
       )}
       {error && (
@@ -78,11 +98,20 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
         <div className="mt-3">
           <ProductSettings
             product={product}
-            currency={currency}
+            supplierCurrency={supplierCurrency}
+            rates={rates}
             supplierPrice={lastPrice}
             busy={busy === 'save'}
             onSave={save}
             onCancel={() => setEditing(false)}
+          />
+        </div>
+      ) : reporting ? (
+        <div className="mt-3">
+          <ReportProblem
+            productId={product.id}
+            defaultReason={lastFailed ? 'not_found' : 'wrong_price'}
+            onClose={() => setReporting(false)}
           />
         </div>
       ) : confirmingDelete ? (
@@ -107,6 +136,9 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
             Supplier
             <ArrowUpRight size={12} weight="bold" className="ml-1" aria-hidden="true" />
           </a>
+          <button type="button" onClick={() => setReporting(true)} className={action}>
+            Report problem
+          </button>
           <button type="button" onClick={() => setConfirmingDelete(true)} disabled={busy !== null} className={`${action} text-zinc-500`}>
             Stop tracking
           </button>

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react/dist/ssr';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { loadRates } from '@/lib/fxServer';
 import Logo from '@/components/Logo';
 import MarginChart from '@/components/dashboard/MarginChart';
 import { hostOf, marginPercent, money, summarize, type ProductWithSnapshots } from '@/lib/margin';
@@ -23,7 +25,7 @@ export default async function ProductHistoryPage(props: { params: Promise<{ id: 
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: product }, { data: alerts }] = await Promise.all([
+  const [{ data: product }, { data: alerts }, rates] = await Promise.all([
     supabase
       .from('tracked_products')
       .select('*, snapshots(*)')
@@ -36,12 +38,14 @@ export default async function ProductHistoryPage(props: { params: Promise<{ id: 
       .eq('tracked_product_id', id)
       .order('created_at', { ascending: false })
       .limit(50),
+    // Exchange rates are public reference data.
+    loadRates(createAdminClient()),
   ]);
 
   if (!product) notFound();
 
   const p = product as ProductWithSnapshots;
-  const { sorted, lastPrice, margin, marginDollar, atRisk, currency } = summarize(p);
+  const { sorted, lastPrice, margin, marginDollar, atRisk, currency, sellCurrency, converted, cost, fx } = summarize(p, rates);
 
   // Change log: the first check, then only checks where price or stock moved.
   const changes = sorted
@@ -52,10 +56,11 @@ export default async function ProductHistoryPage(props: { params: Promise<{ id: 
 
   const stats = [
     { label: 'Supplier price', value: money(lastPrice, currency) },
-    { label: 'You sell for', value: money(p.sell_price, currency) },
-    ...(p.extra_cost ? [{ label: 'Shipping and fees', value: money(p.extra_cost, currency) }] : []),
+    ...(converted ? [{ label: `In ${sellCurrency} today`, value: money(cost, sellCurrency) }] : []),
+    { label: 'You sell for', value: money(p.sell_price, sellCurrency) },
+    ...(p.extra_cost ? [{ label: 'Shipping and fees', value: money(p.extra_cost, sellCurrency) }] : []),
     { label: 'Margin', value: margin != null ? `${margin.toFixed(1)}%` : '—', bad: atRisk },
-    { label: 'Profit per sale', value: money(marginDollar, currency), bad: atRisk },
+    { label: 'Profit per sale', value: money(marginDollar, sellCurrency), bad: atRisk },
     { label: 'Alert line', value: `${p.margin_alert_percent}%` },
     { label: 'Checks', value: String(sorted.length) },
   ];
@@ -98,7 +103,14 @@ export default async function ProductHistoryPage(props: { params: Promise<{ id: 
         <section className="mt-10">
           <h2 className="text-sm font-medium">{p.sell_price != null ? 'Margin over time' : 'Supplier price over time'}</h2>
           <div className="mt-4">
-            <MarginChart snapshots={sorted} sellPrice={p.sell_price} extraCost={p.extra_cost ?? 0} threshold={p.margin_alert_percent} />
+            <MarginChart
+              snapshots={sorted}
+              sellPrice={p.sell_price}
+              extraCost={p.extra_cost ?? 0}
+              threshold={p.margin_alert_percent}
+              costFactor={fx}
+              sellCurrency={sellCurrency}
+            />
           </div>
         </section>
 

@@ -3,6 +3,8 @@ import * as Sentry from '@sentry/nextjs';
 import { scrapeProductPage } from './scraper';
 import { sendAlertEmail } from './email';
 import { formatMoney } from './money';
+import { fxFactor, normalizeCurrency } from './fx';
+import { loadRates } from './fxServer';
 
 export type ProductForCheck = {
   id: string;
@@ -11,6 +13,7 @@ export type ProductForCheck = {
   user_email: string;
   alert_threshold_percent: number;
   sell_price?: number | null;
+  sell_currency?: string | null;
   extra_cost?: number | null;
   margin_alert_percent?: number;
 };
@@ -100,13 +103,23 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
 
   // Margin erosion: only fire the moment margin crosses the threshold
   // (not on every check while it stays low). Shipping and fees count as cost.
+  // Sell price, shipping and fees are in the seller's currency, so the
+  // supplier's price is converted into it first.
   const sellPrice = product.sell_price;
   const extra = product.extra_cost ?? 0;
   const marginAlertPercent = product.margin_alert_percent ?? 20;
-  if (sellPrice != null && sellPrice > 0 && result.price != null) {
-    const marginPercent = ((sellPrice - result.price - extra) / sellPrice) * 100;
+  const supplierCurrency = normalizeCurrency(currency);
+  const sellCurrency = product.sell_currency ? normalizeCurrency(product.sell_currency) : supplierCurrency;
+  const fx =
+    sellCurrency === supplierCurrency ? 1 : fxFactor(supplierCurrency, sellCurrency, await loadRates(supabase));
+  const sellMoney = (v: number) => formatMoney(v, sellCurrency);
+  if (sellPrice != null && sellPrice > 0 && result.price != null && fx != null) {
+    const cost = result.price * fx;
+    const marginPercent = ((sellPrice - cost - extra) / sellPrice) * 100;
     const prevMarginPercent =
-      prev.price != null ? ((sellPrice - prev.price - extra) / sellPrice) * 100 : null;
+      prev.price != null ? ((sellPrice - prev.price * fx - extra) / sellPrice) * 100 : null;
+    const supplierText =
+      fx === 1 ? money(result.price) : `${money(result.price)} (about ${sellMoney(cost)})`;
 
     if (
       marginPercent <= marginAlertPercent &&
@@ -116,8 +129,8 @@ export async function checkOneProduct(supabase: SupabaseClient, product: Product
         type: 'margin_below_threshold',
         message:
           `Your margin on this product just dropped to ${marginPercent.toFixed(1)}% ` +
-          `(supplier price ${money(result.price)}${extra ? ` plus ${money(extra)} shipping and fees` : ''} ` +
-          `vs. your sell price ${money(sellPrice)}), at or below your ${marginAlertPercent}% alert line.`,
+          `(supplier price ${supplierText}${extra ? ` plus ${sellMoney(extra)} shipping and fees` : ''} ` +
+          `vs. your sell price ${sellMoney(sellPrice)}), at or below your ${marginAlertPercent}% alert line.`,
       });
     }
   }

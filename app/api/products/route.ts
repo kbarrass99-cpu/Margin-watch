@@ -6,6 +6,8 @@ import { planFor, PLANS, trialEligible } from '@/lib/plans';
 import { sendFirstProductEmail, sendLimitReachedEmail } from '@/lib/lifecycleEmails';
 import { assertPublicHttpUrl, normalizeHttpUrl } from '@/lib/urlSafety';
 import { unsupportedSupplierMessage } from '@/lib/suppliers';
+import { isSellCurrency } from '@/lib/fx';
+import { loadRates } from '@/lib/fxServer';
 
 function limitMessage(plan: ReturnType<typeof planFor>) {
   const limit = PLANS[plan].productLimit;
@@ -33,7 +35,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Your products could not be loaded. Refresh the page to try again.' }, { status: 500 });
   }
 
-  return NextResponse.json({ products });
+  // Rates let the dashboard convert supplier prices into each seller's currency.
+  const rates = await loadRates(createAdminClient());
+
+  return NextResponse.json({ products, rates });
 }
 
 export async function POST(request: Request) {
@@ -76,6 +81,11 @@ export async function POST(request: Request) {
   if (!Number.isFinite(marginAlert) || marginAlert < 0 || marginAlert > 100) {
     return NextResponse.json({ error: 'Alert threshold must be between 0 and 100%' }, { status: 400 });
   }
+
+  if (body.sell_currency != null && body.sell_currency !== '' && !isSellCurrency(body.sell_currency)) {
+    return NextResponse.json({ error: 'Choose a currency from the list.' }, { status: 400 });
+  }
+  const sellCurrency: string | null = isSellCurrency(body.sell_currency) ? body.sell_currency : null;
 
   // Say so up front rather than adding a product that can never be checked.
   const unsupported = unsupportedSupplierMessage(rawUrl);
@@ -121,6 +131,7 @@ export async function POST(request: Request) {
       user_email: user.email,
       source_url: sourceUrl,
       sell_price: sellPrice,
+      sell_currency: sellCurrency,
       extra_cost: extraCost,
       margin_alert_percent: marginAlert,
     })

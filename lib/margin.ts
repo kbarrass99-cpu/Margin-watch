@@ -1,4 +1,5 @@
 import { currencySymbol } from './money';
+import { fxFactor, normalizeCurrency, type Rates } from './fx';
 
 export type PriceSnapshot = {
   id: string;
@@ -16,6 +17,8 @@ export type ProductWithSnapshots = {
   source_url: string;
   created_at: string;
   sell_price: number | null;
+  // The currency the seller prices in; null = the supplier's currency.
+  sell_currency?: string | null;
   extra_cost?: number | null;
   margin_alert_percent: number;
   last_checked_at?: string | null;
@@ -62,7 +65,8 @@ export function marginPercent(sellPrice: number | null, cost: number | null, ext
   return ((sellPrice - cost - (extraCost || 0)) / sellPrice) * 100;
 }
 
-export function summarize(product: ProductWithSnapshots, now = Date.now()) {
+// rates converts the supplier's price into the seller's currency when they differ.
+export function summarize(product: ProductWithSnapshots, rates?: Rates | null, now = Date.now()) {
   const sorted = sortByCheckedAt(product.snapshots);
   const good = sorted.filter(isGoodReading);
   const lastAttempt = sorted[sorted.length - 1];
@@ -75,11 +79,19 @@ export function summarize(product: ProductWithSnapshots, now = Date.now()) {
   const prevPrice = priced[priced.length - 2]?.price ?? null;
   const lastFailed = !!lastAttempt && !isGoodReading(lastAttempt);
   const currency = latest?.currency ?? priced[priced.length - 1]?.currency ?? null;
+  const supplierCurrency = normalizeCurrency(currency);
+  // Sell price, shipping and fees, margin and profit are in the seller's currency.
+  const sellCurrency = product.sell_currency ? normalizeCurrency(product.sell_currency) : supplierCurrency;
+  const fx = fxFactor(supplierCurrency, sellCurrency, rates);
+  const converted = sellCurrency !== supplierCurrency;
+  // The supplier's price in the seller's currency; null if there's no rate yet.
+  const cost = lastPrice != null && fx != null ? lastPrice * fx : null;
+  const fxMissing = converted && fx == null;
   const extra = product.extra_cost ?? 0;
   const priceChange =
     lastPrice != null && prevPrice != null && prevPrice !== 0 ? ((lastPrice - prevPrice) / prevPrice) * 100 : null;
-  const margin = marginPercent(product.sell_price, lastPrice, extra);
-  const profitPerSale = product.sell_price != null && lastPrice != null ? product.sell_price - lastPrice - extra : null;
+  const margin = marginPercent(product.sell_price, cost, extra);
+  const profitPerSale = product.sell_price != null && cost != null ? product.sell_price - cost - extra : null;
   const atRisk = margin != null && margin <= product.margin_alert_percent;
 
   let status: ProductStatus = 'ok';
@@ -97,6 +109,12 @@ export function summarize(product: ProductWithSnapshots, now = Date.now()) {
     lastAttempt,
     lastFailed,
     currency,
+    supplierCurrency,
+    sellCurrency,
+    converted,
+    fx,
+    fxMissing,
+    cost,
     lastPrice,
     priceChange,
     margin,
