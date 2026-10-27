@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowClockwise, ArrowUpRight, PencilSimple, Trash } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowUpRight, Flag, PencilSimple, Trash } from '@phosphor-icons/react';
 import Sparkline from '@/components/Sparkline';
 import { hostOf, money, summarize, timeAgo, type ProductWithSnapshots } from '@/lib/margin';
-import { ProductSettings, StatusChip, useProductActions } from '@/components/dashboard/productUi';
+import { ProductSettings, ReportProblem, StatusChip, useProductActions } from '@/components/dashboard/productUi';
 
 const iconButton =
   'inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.96] disabled:opacity-40';
@@ -14,6 +14,7 @@ const iconButton =
 export default function ProductRow({ product, onChanged }: { product: ProductWithSnapshots; onChanged: () => void }) {
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const { busy, error, checkNow, remove, save } = useProductActions(product.id, onChanged);
   const s = summarize(product);
   const { latest, lastPrice, lastAttempt, lastFailed, priceChange, margin, profitPerSale, atRisk, status, currency } = s;
@@ -116,6 +117,19 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
               <button type="button" onClick={checkNow} disabled={busy !== null} className={iconButton} aria-label="Check now" title="Check now">
                 <ArrowClockwise size={16} weight="bold" className={busy === 'check' ? 'animate-spin' : ''} />
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setReporting((v) => !v);
+                }}
+                className={iconButton}
+                aria-label="Report a problem with this product"
+                title="Report a problem"
+                aria-expanded={reporting}
+              >
+                <Flag size={16} weight="bold" />
+              </button>
               <button type="button" onClick={() => setConfirmingDelete(true)} disabled={busy !== null} className={`${iconButton} hover:!text-red-700`} aria-label="Stop tracking" title="Stop tracking">
                 <Trash size={16} weight="bold" />
               </button>
@@ -124,7 +138,7 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
         </td>
       </tr>
 
-      {(error || editing || lastFailed) && (
+      {(error || editing || lastFailed || reporting) && (
         <tr className={atRisk ? 'bg-red-50/70' : ''}>
           <td colSpan={8} className="px-3 pb-3 pt-0 pl-[3.75rem] text-xs">
             <div className="flex flex-col gap-2">
@@ -133,7 +147,22 @@ export default function ProductRow({ product, onChanged }: { product: ProductWit
                 <span className="text-amber-800">
                   Last check failed: {lastAttempt.raw_status.replace(/\.$/, '')}.
                   {latest ? ` Showing the last good reading from ${timeAgo(latest.checked_at)}.` : ''}
+                  {!reporting && (
+                    <>
+                      {' '}
+                      <button type="button" onClick={() => setReporting(true)} className="font-medium text-amber-900 underline underline-offset-2 hover:text-amber-950">
+                        Report this to us
+                      </button>
+                    </>
+                  )}
                 </span>
+              )}
+              {reporting && (
+                <ReportProblem
+                  productId={product.id}
+                  defaultReason={lastFailed ? 'not_found' : 'wrong_price'}
+                  onClose={() => setReporting(false)}
+                />
               )}
               {editing && (
                 <ProductSettings

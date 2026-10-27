@@ -156,3 +156,122 @@ export function ProductSettings({
     </form>
   );
 }
+
+const REPORT_REASONS = [
+  { id: 'not_found', label: "Price isn't being found" },
+  { id: 'wrong_price', label: 'Price is wrong' },
+  { id: 'wrong_stock', label: 'Stock is wrong' },
+  { id: 'other', label: 'Something else' },
+] as const;
+
+type ReportReason = (typeof REPORT_REASONS)[number]['id'];
+
+// "Report a problem": tells MarginCanary support straight away, with the
+// product's latest checks attached on the server.
+export function ReportProblem({
+  productId,
+  defaultReason,
+  onClose,
+}: {
+  productId: string;
+  defaultReason: ReportReason;
+  onClose: () => void;
+}) {
+  const [reason, setReason] = useState<ReportReason>(defaultReason);
+  const [note, setNote] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setState('sending');
+    setError(null);
+    try {
+      const res = await fetch(`/api/products/${productId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason, note }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Your report could not be sent. Try again in a minute.');
+        setState('idle');
+        return;
+      }
+      setState('sent');
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
+      setState('idle');
+    }
+  }
+
+  if (state === 'sent') {
+    return (
+      <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
+        <span>Thanks. We&apos;ve been alerted and will look into this product. We&apos;ll email you when it&apos;s sorted.</span>
+        <button type="button" onClick={onClose} className="min-h-[36px] px-2 font-medium text-emerald-900 hover:underline">
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4 rounded-lg bg-zinc-50 p-4">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-xs font-medium text-zinc-700">What&apos;s wrong with this product?</legend>
+        <div className="flex flex-wrap gap-2">
+          {REPORT_REASONS.map((r) => (
+            <label
+              key={r.id}
+              className={`cursor-pointer rounded-full px-3 py-1.5 text-sm ring-1 ring-inset transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-zinc-900 ${
+                reason === r.id ? 'bg-zinc-900 text-white ring-zinc-900' : 'bg-white text-zinc-700 ring-zinc-300 hover:ring-zinc-400'
+              }`}
+            >
+              <input
+                type="radio"
+                name={`report-reason-${productId}`}
+                value={r.id}
+                checked={reason === r.id}
+                onChange={() => setReason(r.id)}
+                className="sr-only"
+              />
+              {r.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`report-note-${productId}`} className="text-xs font-medium text-zinc-700">
+          Anything else we should know? <span className="font-normal text-zinc-500">(optional)</span>
+        </label>
+        <textarea
+          id={`report-note-${productId}`}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={1000}
+          rows={2}
+          placeholder="For example: the supplier page shows $12.40"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base sm:text-sm focus:outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-900/5"
+        />
+        {error ? (
+          <p role="alert" className="text-xs text-red-700">{error}</p>
+        ) : (
+          <p className="text-xs text-zinc-500">We&apos;ll see the supplier link and your latest checks, so there&apos;s no need to repeat them.</p>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={state === 'sending'}
+          className="min-h-[40px] rounded-lg bg-accent px-4 text-sm font-medium text-white transition hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50"
+        >
+          {state === 'sending' ? 'Sending…' : 'Send report'}
+        </button>
+        <button type="button" onClick={onClose} className="min-h-[40px] rounded-lg px-3 text-sm text-zinc-600 hover:text-zinc-900">
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}

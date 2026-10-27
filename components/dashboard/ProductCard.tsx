@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { hostOf, money, summarize, timeAgo, type ProductWithSnapshots } from '@/lib/margin';
-import { ProductSettings, StatusChip, useProductActions } from '@/components/dashboard/productUi';
+import { ProductSettings, ReportProblem, StatusChip, useProductActions } from '@/components/dashboard/productUi';
 
 const action =
   'inline-flex min-h-[44px] items-center justify-center rounded-lg px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 active:scale-[0.98] disabled:opacity-50';
@@ -13,6 +13,7 @@ const action =
 export default function ProductCard({ product, onChanged }: { product: ProductWithSnapshots; onChanged: () => void }) {
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const { busy, error, checkNow, remove, save } = useProductActions(product.id, onChanged);
   const { latest, lastPrice, lastAttempt, lastFailed, priceChange, margin, profitPerSale, atRisk, status, currency } = summarize(product);
 
@@ -66,6 +67,14 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
         <p className="mt-3 pl-[3.25rem] text-xs text-amber-800">
           Last check failed: {lastAttempt.raw_status.replace(/\.$/, '')}.
           {latest ? ` Showing the reading from ${timeAgo(latest.checked_at)}.` : ''}
+          {!reporting && !editing && (
+            <>
+              {' '}
+              <button type="button" onClick={() => setReporting(true)} className="font-medium text-amber-900 underline underline-offset-2">
+                Report this to us
+              </button>
+            </>
+          )}
         </p>
       )}
       {error && (
@@ -83,6 +92,14 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
             busy={busy === 'save'}
             onSave={save}
             onCancel={() => setEditing(false)}
+          />
+        </div>
+      ) : reporting ? (
+        <div className="mt-3">
+          <ReportProblem
+            productId={product.id}
+            defaultReason={lastFailed ? 'not_found' : 'wrong_price'}
+            onClose={() => setReporting(false)}
           />
         </div>
       ) : confirmingDelete ? (
@@ -107,6 +124,9 @@ export default function ProductCard({ product, onChanged }: { product: ProductWi
             Supplier
             <ArrowUpRight size={12} weight="bold" className="ml-1" aria-hidden="true" />
           </a>
+          <button type="button" onClick={() => setReporting(true)} className={action}>
+            Report problem
+          </button>
           <button type="button" onClick={() => setConfirmingDelete(true)} disabled={busy !== null} className={`${action} text-zinc-500`}>
             Stop tracking
           </button>

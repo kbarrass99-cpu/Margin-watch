@@ -20,6 +20,73 @@ function safeLink(url: string): string {
   return `${SITE.url}/dashboard`;
 }
 
+// Internal: a customer used "Report a problem" on a product. Goes to the
+// support inbox; replying answers the customer directly.
+export async function sendIssueReportEmail(opts: {
+  reportId: number;
+  customerEmail: string;
+  plan: string;
+  reason: string;
+  note: string | null;
+  productTitle: string | null;
+  productUrl: string;
+  recentChecks: { checked_at: string; price: number | null; currency: string | null; in_stock: boolean | null; raw_status: string }[];
+}): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set - skipping email send');
+    return false;
+  }
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = process.env.ALERT_FROM_EMAIL || 'onboarding@resend.dev';
+  const title = (opts.productTitle || opts.productUrl).replace(/[\r\n\t]+/g, ' ').trim().slice(0, 100);
+  const cell = 'padding:4px 8px; border-bottom:1px solid #e4e4e7; font-size:13px; vertical-align:top;';
+  const checks = opts.recentChecks.length
+    ? opts.recentChecks
+        .map(
+          (c) => `<tr>
+            <td style="${cell}">${escapeHtml(new Date(c.checked_at).toUTCString())}</td>
+            <td style="${cell}">${c.price == null ? '-' : escapeHtml(`${c.price} ${c.currency ?? ''}`)}</td>
+            <td style="${cell}">${c.in_stock == null ? '-' : c.in_stock ? 'in stock' : 'out of stock'}</td>
+            <td style="${cell}">${escapeHtml(c.raw_status.slice(0, 300))}</td>
+          </tr>`
+        )
+        .join('')
+    : `<tr><td style="${cell}" colspan="4">No checks yet.</td></tr>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: `MarginCanary <${from}>`,
+      to: SITE.supportEmail,
+      reply_to: opts.customerEmail,
+      subject: `Problem report #${opts.reportId}: ${opts.reason} - ${title}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 640px; color:#18181b;">
+          <h2 style="margin:0 0 12px;">Problem report #${opts.reportId}</h2>
+          <p style="margin:4px 0;"><strong>Customer:</strong> ${escapeHtml(opts.customerEmail)} (${escapeHtml(opts.plan)} plan)</p>
+          <p style="margin:4px 0;"><strong>Problem:</strong> ${escapeHtml(opts.reason)}</p>
+          <p style="margin:4px 0;"><strong>Their note:</strong> ${opts.note ? escapeHtml(opts.note) : '<em>none</em>'}</p>
+          <p style="margin:4px 0;"><strong>Product:</strong> ${escapeHtml(title)}</p>
+          <p style="margin:4px 0; word-break:break-all;"><strong>Supplier link:</strong> <a href="${escapeHtml(safeLink(opts.productUrl))}">${escapeHtml(opts.productUrl.slice(0, 300))}</a></p>
+          <h3 style="margin:20px 0 6px; font-size:15px;">Latest checks</h3>
+          <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; width:100%;">
+            <tr><th align="left" style="${cell}">When</th><th align="left" style="${cell}">Price</th><th align="left" style="${cell}">Stock</th><th align="left" style="${cell}">What the checker saw</th></tr>
+            ${checks}
+          </table>
+          <p style="color:#71717a; font-size:12px; margin-top:20px;">Reply to this email to answer the customer directly.</p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error('Resend rejected problem report email', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to send problem report email', err);
+    return false;
+  }
+}
+
 // Account emails (welcome, trial ending and so on). Paragraphs are plain
 // text and are escaped here; replies go to the support inbox.
 export async function sendServiceEmail(opts: {
