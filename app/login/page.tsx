@@ -9,6 +9,11 @@ import AuthShell from '@/components/auth/AuthShell';
 import Field, { inputClass } from '@/components/auth/Field';
 import SubmitButton from '@/components/auth/SubmitButton';
 
+// Only same-site paths, so a crafted link can't send people elsewhere after logging in.
+function safeNext(value: string | null): string {
+  return value && /^\/[a-z0-9/_-]*$/i.test(value) && !value.startsWith('//') ? value : '/dashboard';
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +49,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/dashboard');
+    router.push(safeNext(new URLSearchParams(window.location.search).get('next')));
     router.refresh();
   }
 

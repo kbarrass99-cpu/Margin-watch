@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import AddProductForm from '@/components/AddProductForm';
@@ -235,6 +236,9 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
                 Upgrade
               </button>
             )}
+            <Link href="/feedback" className="px-2.5 py-1.5 text-zinc-600 hover:text-zinc-900">
+              Feedback
+            </Link>
             <button type="button" onClick={handleSignOut} className="px-2.5 py-1.5 text-zinc-600 hover:text-zinc-900">
               Sign out
             </button>
