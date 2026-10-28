@@ -3,6 +3,7 @@ import { assertPublicHttpUrl } from './urlSafety';
 import { BlockedUrlError, safeGet } from './safeFetch';
 import { aliexpressConfigured, fetchAliExpressProduct, isAliExpressUrl, resolveProductId } from './aliexpress';
 import { cjConfigured, cjProductIdFromUrl, fetchCjProduct, isCjUrl } from './cjdropshipping';
+import { ebayConfigured, fetchEbayProduct, isEbayUrl } from './ebay';
 import { countryForUrl, parseKnownSite } from './supplierParsers';
 import { unsupportedSupplierMessage } from './suppliers';
 import { cleanCurrency, cleanImageUrl, cleanPrice, cleanTitle, parseMoney } from './scrapeValues';
@@ -20,7 +21,13 @@ export type ScrapeResult = {
 };
 
 // Signs that a site served a bot check / CAPTCHA page instead of the product.
-const ROBOT_CHECK = /captcha|are you a robot|check if you are a robot|not a robot|human verification|unusual traffic|x5secdata|_____tmd_____/i;
+// The wording is only looked for in what a visitor would read: normal product
+// pages mention "captcha" in their scripts and settings too.
+const ROBOT_CHECK_TEXT =
+  /\b(re)?captcha\b|are you a robot|check if you are a robot|not a robot|human verification|unusual traffic|slide to verify/i;
+// Block pages recognisable from their markup: Alibaba group (AliExpress,
+// Alibaba), SHEIN's risk challenge and PerimeterX (Walmart and others).
+const ROBOT_CHECK_MARKUP = /x5secdata|_____tmd_____|\/risk\/challenge|captcha_type=|id="px-captcha"/;
 const ROBOT_CHECK_STATUS = 'This supplier showed a robot check instead of the product page, so the price could not be read.';
 const DEAD_LINK_STATUS = "The supplier says this page doesn't exist any more. The product may have been removed: check the link still opens.";
 
@@ -56,6 +63,13 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
     const pid = cjProductIdFromUrl(url);
     if (pid) return fetchCjProduct(pid);
     return { ok: false, rawStatus: "This doesn't look like a CJdropshipping product link. Use the link to the product's own page." };
+  }
+
+  // eBay listings go through eBay's API when it's set up. The listing page
+  // is the fallback, so a problem with the API never stops a check.
+  if (isEbayUrl(url) && ebayConfigured()) {
+    const viaApi = await fetchEbayProduct(url);
+    if (viaApi) return viaApi;
   }
 
   const direct = await fetchDirect(url);
@@ -167,7 +181,7 @@ function parseProductHtml(html: string, url: string): ScrapeResult {
   // than no price (it can send a false alert), so the loose pattern match
   // at the end only accepts a page with one unambiguous price.
   const result =
-    parseKnownSite($, html, url) ??
+    parseKnownSite($, url) ??
     // Schema.org product data: most shops embed it, and it's far more stable
     // than the visual layout.
     parseLdJson($) ??
@@ -180,10 +194,17 @@ function parseProductHtml(html: string, url: string): ScrapeResult {
     ok: false,
     title: cleanTitle($('meta[property="og:title"]').attr('content')),
     imageUrl: cleanImageUrl($('meta[property="og:image"]').attr('content')),
-    rawStatus: ROBOT_CHECK.test(html)
+    rawStatus: isRobotCheck($, html)
       ? ROBOT_CHECK_STATUS
       : 'Could not find price data on this page. The site may have changed its layout or blocked the request.',
   };
+}
+
+function isRobotCheck($: cheerio.CheerioAPI, html: string): boolean {
+  if (ROBOT_CHECK_MARKUP.test(html)) return true;
+  const body = $('body').clone();
+  body.find('script, style, noscript, template').remove();
+  return ROBOT_CHECK_TEXT.test(`${$('title').first().text()} ${body.text()}`);
 }
 
 function pageTitle($: cheerio.CheerioAPI): string | undefined {

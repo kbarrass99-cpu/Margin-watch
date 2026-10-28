@@ -34,11 +34,11 @@ function hostOf(rawUrl: string): string {
   }
 }
 
-export function parseKnownSite($: CheerioAPI, html: string, url: string): ScrapeResult | null {
+export function parseKnownSite($: CheerioAPI, url: string): ScrapeResult | null {
   const host = hostOf(url);
   if (/(^|\.)amazon\.[a-z.]+$/.test(host)) return parseAmazon($, url);
   if (/(^|\.)banggood\.com$/.test(host)) return parseBanggood($);
-  if (/(^|\.)alibaba\.com$/.test(host)) return parseAlibaba($, html);
+  if (/(^|\.)walmart\.com$/.test(host)) return parseWalmart($);
   return null;
 }
 
@@ -94,32 +94,43 @@ function parseBanggood($: CheerioAPI): ScrapeResult | null {
     imageUrl: cleanImageUrl($('meta[property="og:image"]').attr('content')),
     price,
     currency: shown.currency ?? 'USD',
+    inStock: stockFromText($('.stock-status').first().text()),
     rawStatus: 'Read from the Banggood price',
   };
 }
 
-// Alibaba prices by order quantity. The standard product data shows the
-// cheapest bulk tier; a dropshipper buys small quantities, so the price for
-// the smallest order is the one tracked.
-function parseAlibaba($: CheerioAPI, html: string): ScrapeResult | null {
-  const match = html.match(/"productLadderPrices"\s*:\s*(\[[^\]]*\])/);
-  if (!match) return null;
-  let tiers: any[];
+// Walmart keeps the product's own price and stock in its page data. An item
+// that's out of stock has no current price, but its stock status still counts
+// as a reading (so the out-of-stock alert goes out).
+function parseWalmart($: CheerioAPI): ScrapeResult | null {
+  let product: any;
   try {
-    tiers = JSON.parse(match[1]);
+    product = JSON.parse($('#__NEXT_DATA__').first().text())?.props?.pageProps?.initialData?.data?.product;
   } catch {
     return null;
   }
-  const smallest = tiers
-    .filter((t) => cleanPrice(t?.dollarPrice ?? t?.price) !== undefined)
-    .sort((a, b) => Number(a?.min ?? 0) - Number(b?.min ?? 0))[0];
-  if (!smallest) return null;
+  if (!product) return null;
+
+  const current = product.priceInfo?.currentPrice;
+  const price = cleanPrice(current?.price);
+  const status = String(product.availabilityStatus ?? '').toUpperCase();
+  const inStock = status === 'IN_STOCK' ? true : status === 'OUT_OF_STOCK' ? false : undefined;
+  if (price === undefined && inStock !== false) return null;
+
   return {
     ok: true,
-    title: cleanTitle($('meta[property="og:title"]').attr('content') || $('title').text()),
-    imageUrl: cleanImageUrl($('meta[property="og:image"]').attr('content')),
-    price: cleanPrice(smallest.dollarPrice ?? smallest.price),
-    currency: cleanCurrency(smallest.currency) ?? 'USD',
-    rawStatus: `Read from the Alibaba price for the smallest order (${Number(smallest.min) || 1}+ pieces)`,
+    title: cleanTitle(product.name),
+    imageUrl: cleanImageUrl(product.imageInfo?.thumbnailUrl),
+    price,
+    currency: price === undefined ? undefined : cleanCurrency(current?.currencyUnit) ?? 'USD',
+    inStock,
+    rawStatus: price === undefined ? 'Walmart shows this item as out of stock' : 'Read from the Walmart product data',
   };
+}
+
+function stockFromText(text: string): boolean | undefined {
+  const t = text.replace(/\s+/g, ' ').toLowerCase();
+  if (/out of stock|sold out|unavailable/.test(t)) return false;
+  if (/in stock/.test(t)) return true;
+  return undefined;
 }

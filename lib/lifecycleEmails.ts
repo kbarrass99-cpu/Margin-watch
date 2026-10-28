@@ -38,7 +38,7 @@ export function sendWelcomeEmail(admin: SupabaseClient, userId: string, to: stri
       heading: "You're all set",
       paragraphs: [
         `Thanks for signing up. Getting your first alert takes about a minute:`,
-        `1. Copy the link to a product on your supplier's site. AliExpress, CJdropshipping, Alibaba and most Shopify stores all work.`,
+        `1. Copy the link to a product on your supplier's site. AliExpress, CJdropshipping, eBay, Amazon and most Shopify stores all work.`,
         `2. Paste it into your dashboard, with the price you sell it for.`,
         `3. We check it every 6 hours and email you if the price or stock changes, or your margin drops below the level you set.`,
         `Any questions, just reply to this email.`,
