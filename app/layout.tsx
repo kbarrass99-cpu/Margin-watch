@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import CookieConsent from '@/components/CookieConsent';
@@ -20,6 +21,11 @@ export default function RootLayout({
       <body className="font-sans bg-zinc-50 text-zinc-900 antialiased">
         {children}
         <CookieConsent />
+        {/* Vercel Web Analytics: counts page views without cookies or personal data, so it needs no consent. */}
+        <Script id="vercel-analytics-queue" strategy="afterInteractive">
+          {'window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };'}
+        </Script>
+        <Script src="/_vercel/insights/script.js" strategy="afterInteractive" />
       </body>
     </html>
   );
