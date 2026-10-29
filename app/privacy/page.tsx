@@ -68,6 +68,11 @@ export default function PrivacyPage() {
           </li>
           <li>To keep financial records we are required to keep by law. Lawful basis: legal obligation.</li>
           <li>
+            To understand how people use our website, such as which pages are visited and where visitors come
+            from. This uses Vercel Web Analytics, which counts visits without cookies and does not identify you.
+            Lawful basis: our legitimate interest in improving the website.
+          </li>
+          <li>
             To measure whether our ads work, only if you accept advertising cookies. Lawful basis: your
             consent, which you can withdraw at any time.
           </li>
@@ -80,7 +85,7 @@ export default function PrivacyPage() {
         <p>We use the following providers to run {SITE.name}. Each only processes data on our instructions:</p>
         <ul>
           <li><strong>Supabase</strong>: database and account sign-in.</li>
-          <li><strong>Vercel</strong>: website hosting.</li>
+          <li><strong>Vercel</strong>: website hosting and visitor statistics.</li>
           <li><strong>Stripe</strong>: payments and subscriptions.</li>
           <li><strong>Resend</strong>: sending emails.</li>
           <li><strong>Sentry</strong>: error monitoring.</li>
@@ -123,6 +128,10 @@ export default function PrivacyPage() {
         <h2>Cookies</h2>
         <p>
           We use cookies to keep you signed in. These are essential, so they are always on.
+        </p>
+        <p>
+          Our visitor statistics (Vercel Web Analytics) do not use cookies. They count page visits using
+          anonymous, short-lived data that cannot be used to identify you.
         </p>
         <p>
           If you accept advertising cookies, we also load OpenAI&apos;s ads measurement pixel. It uses cookies
