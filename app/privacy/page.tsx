@@ -137,7 +137,8 @@ export default function PrivacyPage() {
           If you accept advertising cookies, we also load OpenAI&apos;s ads measurement pixel. It uses cookies
           and similar technology to tell us whether people who saw our ads in ChatGPT went on to create an
           account or subscribe, and it records those events. We do not send OpenAI your name, email address
-          or payment details. If you reject, the pixel is never loaded. You can change your answer at any
+          or payment details. We only ask visitors who arrive from one of our ads. If you reject, or don&apos;t
+          answer, the pixel is never loaded. You can change your answer at any
           time with <strong>Cookie settings</strong> at the bottom of every page.
         </p>
       </section>

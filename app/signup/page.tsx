@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { EnvelopeSimple } from '@phosphor-icons/react';
@@ -10,6 +10,7 @@ import Field, { inputClass } from '@/components/auth/Field';
 import SubmitButton from '@/components/auth/SubmitButton';
 import { SITE } from '@/lib/site';
 import { measureConversion } from '@/lib/adsPixel';
+import { peekPendingTrack } from '@/lib/pendingTrack';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -17,7 +18,14 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
   const router = useRouter();
+
+  // A product the visitor checked on the homepage is added after sign-up.
+  useEffect(() => {
+    const pending = peekPendingTrack();
+    if (pending) setPendingTitle(pending.title || 'the product you checked');
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,6 +76,7 @@ export default function SignupPage() {
           <p>
             We sent a confirmation link to <span className="font-medium text-zinc-900">{email}</span>.
             Open it, then come back and log in.
+            {pendingTitle ? ' Open it on this device and the product you checked will be ready to track.' : ''}
           </p>
         </div>
       </AuthShell>
@@ -77,7 +86,11 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="Create your free account"
-      subtitle="Track one product free. No credit card."
+      subtitle={
+        pendingTitle
+          ? `Then we'll watch ${pendingTitle.length > 70 ? `${pendingTitle.slice(0, 70)}…` : pendingTitle} for you. Free for 1 product, no credit card.`
+          : 'Track one product free. No credit card.'
+      }
       footer={
         <>
           Already have an account?{' '}

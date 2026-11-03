@@ -5,7 +5,7 @@ import SiteHeader from '@/components/marketing/SiteHeader';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import HeroAlert from '@/components/marketing/HeroAlert';
 import HowItWorks from '@/components/marketing/HowItWorks';
-import MagneticLink from '@/components/marketing/MagneticLink';
+import TryLink from '@/components/marketing/TryLink';
 import MarketingMotion from '@/components/marketing/MarketingMotion';
 
 export default function Home() {
@@ -20,23 +20,23 @@ export default function Home() {
           <h1 className="mt-4 text-4xl md:text-6xl font-semibold tracking-tighter leading-none max-w-[14ch]">
             Know the moment your margin disappears.
           </h1>
-          <p className="mt-6 text-base text-zinc-600 leading-relaxed max-w-[52ch]">
-            A price tracker tells you the price changed. MarginCanary also knows what you sell for,
-            so it emails you when a price hike eats into your margin, a product goes out of stock, or
-            a variant disappears.
+          <p className="mt-5 text-base text-zinc-600 leading-relaxed max-w-[48ch]">
+            MarginCanary watches your supplier&apos;s product page and emails you when a price rise eats into
+            your profit or the item goes out of stock.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <MagneticLink
-              href="/signup"
-              className="inline-flex items-center rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
-            >
-              Track a product free
-            </MagneticLink>
-            <Link href="/#pricing" className="text-sm text-zinc-600 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900">
+          <div className="mt-7 max-w-xl">
+            <TryLink />
+          </div>
+          <p className="mt-5 text-sm text-zinc-500">
+            Rather set it up later?{' '}
+            <Link href="/signup" className="whitespace-nowrap font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900">
+              Create a free account
+            </Link>
+            <span className="text-zinc-400"> &middot; </span>
+            <Link href="/#pricing" className="whitespace-nowrap text-zinc-600 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900">
               See pricing
             </Link>
-          </div>
-          <p className="mt-4 text-xs text-zinc-400">Free for 1 product. No credit card.</p>
+          </p>
         </div>
 
         <HeroAlert />
