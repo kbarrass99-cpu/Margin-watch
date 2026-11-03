@@ -44,7 +44,7 @@ export const PasteLinkTile = memo(function PasteLinkTile() {
   const results = [
     { price: '$11.40', stock: 'In stock' },
     { price: '$6.10', stock: 'In stock' },
-    { price: '$17.30', stock: '3 variants' },
+    { price: '$17.30', stock: 'Out of stock' },
   ];
 
   return (

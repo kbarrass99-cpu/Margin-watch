@@ -7,7 +7,7 @@ const CHANGES = [
   'Ceramic pour-over set +$3.45',
   'Linen tote bag out of stock',
   'LED desk lamp +$1.35',
-  'Silicone baking mat 3-pack variant removed',
+  'Silicone baking mat 3-pack +$0.95',
   'Magnetic phone mount back in stock',
   'Bamboo cutlery roll +$0.88',
   'Heated eye mask +$2.10',

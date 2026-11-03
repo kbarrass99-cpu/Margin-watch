@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SUPPORTED_SUPPLIERS } from '@/lib/suppliers';
 import { SELL_CURRENCIES, guessCurrency, isSellCurrency } from '@/lib/fx';
+import { clearPendingTrack, peekPendingTrack } from '@/lib/pendingTrack';
 
 const CURRENCY_KEY = 'mc:sellCurrency';
 
@@ -25,6 +26,7 @@ export default function AddProductForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+  const [fromCheck, setFromCheck] = useState(false);
 
   // The seller's currency: the last one they picked, or a guess from the browser.
   useEffect(() => {
@@ -33,6 +35,15 @@ export default function AddProductForm({
       saved = window.localStorage.getItem(CURRENCY_KEY);
     } catch {}
     setSellCurrency(isSellCurrency(saved) ? saved : guessCurrency(navigator.language));
+
+    // A link the visitor checked on the homepage before signing up.
+    const pending = peekPendingTrack();
+    if (pending) {
+      clearPendingTrack();
+      setUrl(pending.url);
+      setFromCheck(true);
+      requestAnimationFrame(() => document.getElementById('add-sell')?.focus());
+    }
   }, []);
 
   function chooseCurrency(code: string) {
@@ -108,7 +119,9 @@ export default function AddProductForm({
             </p>
           ) : (
             <p id="add-helper" className="text-xs text-zinc-500">
-              Works with {SUPPORTED_SUPPLIERS}.
+              {fromCheck
+                ? 'This is the product you checked. Add what you sell it for, then click Track product.'
+                : `Works with ${SUPPORTED_SUPPLIERS}.`}
             </p>
           )}
         </div>

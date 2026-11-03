@@ -53,7 +53,7 @@ export default function HowItWorks() {
           <div className={tile}><AlertTile /></div>
           <Caption
             title="An email before it costs you"
-            body="Price hike under your margin line, out of stock, or a variant gone: you hear about it right away."
+            body="Price hike under your margin line, or out of stock: you hear about it right away."
           />
         </div>
       </div>
