@@ -16,6 +16,7 @@ export default function SiteFooter() {
         </div>
         <div className="flex flex-col gap-2">
           <Link href="/shopify" className="text-zinc-600 hover:text-zinc-900">For Shopify stores</Link>
+          <Link href="/price-tracker" className="text-zinc-600 hover:text-zinc-900">Supplier price trackers</Link>
           <Link href="/#pricing" className="text-zinc-600 hover:text-zinc-900">Pricing</Link>
         </div>
         <div className="flex flex-col gap-2">

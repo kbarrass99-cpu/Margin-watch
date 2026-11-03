@@ -8,7 +8,7 @@ import { savePendingTrack } from '@/lib/pendingTrack';
 import type { TryResult } from '@/app/api/try/route';
 
 // Example links for visitors who don't have a supplier page open.
-const EXAMPLES = [
+const DEFAULT_EXAMPLES = [
   { label: 'AliExpress', url: 'https://www.aliexpress.com/item/1005012339400657.html' },
   { label: 'eBay', url: 'https://www.ebay.co.uk/itm/375119189634' },
   { label: 'Amazon', url: 'https://www.amazon.co.uk/dp/B0CP249PYP' },
@@ -24,7 +24,13 @@ function hostOf(url: string) {
 
 // Paste a supplier link, see its live price and stock, then sign up to be
 // told when it changes. The link is carried into the dashboard.
-export default function TryLink() {
+export default function TryLink({
+  placeholder = 'https://www.aliexpress.com/item/…',
+  examples = DEFAULT_EXAMPLES,
+}: {
+  placeholder?: string;
+  examples?: { label: string; url: string }[];
+}) {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [checked, setChecked] = useState('');
@@ -83,7 +89,7 @@ export default function TryLink() {
             type="url"
             inputMode="url"
             required
-            placeholder="https://www.aliexpress.com/item/…"
+            placeholder={placeholder}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-invalid={Boolean(error)}
@@ -104,8 +110,8 @@ export default function TryLink() {
           </p>
         ) : (
           <p id="try-help" className="text-xs text-zinc-500">
-            No account needed. Or try an example:{' '}
-            {EXAMPLES.map((ex, i) => (
+            No account needed.{examples.length > 0 ? ' Or try an example: ' : ''}
+            {examples.map((ex, i) => (
               <span key={ex.label}>
                 <button
                   type="button"
@@ -115,7 +121,7 @@ export default function TryLink() {
                 >
                   {ex.label}
                 </button>
-                {i < EXAMPLES.length - 1 ? ', ' : ''}
+                {i < examples.length - 1 ? ', ' : ''}
               </span>
             ))}
           </p>
