@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, CheckCircle, WarningCircle, XCircle } from '@phosphor-icons/react';
 import { formatMoney } from '@/lib/money';
 import { savePendingTrack } from '@/lib/pendingTrack';
+import { capture } from '@/lib/analytics';
 import type { TryResult } from '@/app/api/try/route';
 
 // Example links for visitors who don't have a supplier page open.
@@ -38,9 +39,10 @@ export default function TryLink({
   const [result, setResult] = useState<TryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function check(link: string) {
+  async function check(link: string, source: 'paste' | 'example' = 'paste') {
     const target = link.trim();
     if (!target) return;
+    capture('try_check_started', { source, supplier: hostOf(target) });
     setUrl(target);
     setState('checking');
     setError(null);
@@ -53,10 +55,12 @@ export default function TryLink({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        capture('try_check_result', { ok: false, status: res.status, supplier: hostOf(target) });
         setError(data.error || 'That link could not be checked. Try again in a minute.');
         setState('idle');
         return;
       }
+      capture('try_check_result', { ok: Boolean(data.ok), has_price: data.price != null, supplier: hostOf(target) });
       setChecked(target);
       setResult(data);
       setState('done');
@@ -67,6 +71,7 @@ export default function TryLink({
   }
 
   function track() {
+    capture('try_watch_started');
     savePendingTrack(checked, result?.title);
     router.push('/signup');
   }
@@ -115,7 +120,7 @@ export default function TryLink({
               <span key={ex.label}>
                 <button
                   type="button"
-                  onClick={() => check(ex.url)}
+                  onClick={() => check(ex.url, 'example')}
                   disabled={state === 'checking'}
                   className="text-zinc-900 underline decoration-zinc-300 underline-offset-4 hover:decoration-zinc-900 disabled:opacity-60"
                 >
