@@ -6,6 +6,15 @@ import CookieConsent from '@/components/CookieConsent';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://margincanary.com'),
+  openGraph: {
+    type: 'website',
+    siteName: 'MarginCanary',
+    title: 'MarginCanary — Know before your supplier changes the price',
+    description: 'Track supplier product pages and get alerted the moment price or stock changes.',
+    url: 'https://margincanary.com',
+  },
+  twitter: { card: 'summary_large_image' },
   title: 'MarginCanary — Know before your supplier changes the price',
   description:
     'Track supplier product pages and get alerted the moment price or stock changes.',

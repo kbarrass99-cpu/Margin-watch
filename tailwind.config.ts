@@ -19,6 +19,14 @@ const config: Config = {
           hover: '#1c3bb5',
           soft: '#eef1fc',
         },
+        // Homepage signal colour (hero-v2 test): the canary. Fills and marks
+        // only; never yellow text on white. Use canary.ink for text.
+        canary: {
+          DEFAULT: '#f2c230',
+          hover: '#e5b31c',
+          soft: '#fdf6dc',
+          ink: '#7a5c00',
+        },
       },
       keyframes: {
         shimmer: { to: { backgroundPosition: '-200% 0' } },

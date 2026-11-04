@@ -5,18 +5,24 @@
 const KEY = 'mc:pendingTrack';
 const MAX_AGE_MS = 7 * 24 * 3600 * 1000;
 
-export function savePendingTrack(url: string, title?: string) {
+export function savePendingTrack(url: string, title?: string, sellPrice?: number, currency?: string) {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify({ url, title, at: Date.now() }));
+    window.localStorage.setItem(KEY, JSON.stringify({ url, title, sellPrice, currency, at: Date.now() }));
   } catch {}
 }
 
-export function peekPendingTrack(): { url: string; title?: string } | null {
+export function peekPendingTrack(): { url: string; title?: string; sellPrice?: number; currency?: string } | null {
   try {
     const saved = JSON.parse(window.localStorage.getItem(KEY) ?? 'null');
     if (typeof saved?.url !== 'string' || !/^https?:\/\//.test(saved.url)) return null;
     if (Date.now() - Number(saved.at) > MAX_AGE_MS) return null;
-    return { url: saved.url, title: typeof saved.title === 'string' ? saved.title : undefined };
+    const sell = Number(saved.sellPrice);
+    return {
+      url: saved.url,
+      title: typeof saved.title === 'string' ? saved.title : undefined,
+      sellPrice: Number.isFinite(sell) && sell > 0 ? sell : undefined,
+      currency: typeof saved.currency === 'string' ? saved.currency : undefined,
+    };
   } catch {
     return null;
   }

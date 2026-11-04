@@ -41,6 +41,8 @@ export default function AddProductForm({
     if (pending) {
       clearPendingTrack();
       setUrl(pending.url);
+      if (pending.sellPrice) setSellPrice(String(pending.sellPrice));
+      if (pending.sellPrice && isSellCurrency(pending.currency)) setSellCurrency(pending.currency);
       setFromCheck(true);
       requestAnimationFrame(() => document.getElementById('add-sell')?.focus());
     }

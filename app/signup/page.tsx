@@ -11,6 +11,7 @@ import SubmitButton from '@/components/auth/SubmitButton';
 import { SITE } from '@/lib/site';
 import { measureConversion } from '@/lib/adsPixel';
 import { peekPendingTrack } from '@/lib/pendingTrack';
+import { capture } from '@/lib/analytics';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -46,6 +47,7 @@ export default function SignupPage() {
       return;
     }
 
+    capture('signup_completed', { location: 'signup_page', from_check: Boolean(pendingTitle) });
     measureConversion('registration_completed', { type: 'customer_action' });
 
     if (data.session) {

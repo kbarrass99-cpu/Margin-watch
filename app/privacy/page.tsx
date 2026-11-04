@@ -70,6 +70,9 @@ export default function PrivacyPage() {
           <li>
             To understand how people use our website, such as which pages are visited and where visitors come
             from. This uses Vercel Web Analytics, which counts visits without cookies and does not identify you.
+            On the homepage we also use PostHog to count how many visitors check a supplier link and go on to
+            create an account, and to test different versions of the page. PostHog stores nothing on your
+            device, does not keep your IP address, and does not link these counts to your account.
             Lawful basis: our legitimate interest in improving the website.
           </li>
           <li>
@@ -89,6 +92,7 @@ export default function PrivacyPage() {
           <li><strong>Stripe</strong>: payments and subscriptions.</li>
           <li><strong>Resend</strong>: sending emails.</li>
           <li><strong>Sentry</strong>: error monitoring.</li>
+          <li><strong>PostHog</strong> (EU hosting): anonymous homepage statistics and page tests.</li>
           <li>
             <strong>Firecrawl</strong>: fetching some supplier pages. It receives the supplier page link only,
             not your personal details.
@@ -131,7 +135,8 @@ export default function PrivacyPage() {
         </p>
         <p>
           Our visitor statistics (Vercel Web Analytics) do not use cookies. They count page visits using
-          anonymous, short-lived data that cannot be used to identify you.
+          anonymous, short-lived data that cannot be used to identify you. PostHog homepage statistics
+          don&apos;t use cookies or any other storage on your device either.
         </p>
         <p>
           If you accept advertising cookies, we also load OpenAI&apos;s ads measurement pixel. It uses cookies
