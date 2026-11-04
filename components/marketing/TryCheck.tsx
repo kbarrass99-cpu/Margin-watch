@@ -166,18 +166,20 @@ function ResultCard({ result, link }: { result: TryResult; link: string }) {
   const currency = result.currency;
   const cost = result.price ?? null;
   const [sell, setSell] = useState('');
-  const [sales, setSales] = useState('30');
+  const [sales, setSales] = useState('');
   const [rise, setRise] = useState(10);
 
   const sellN = num(sell);
-  const salesN = num(sales) ?? 0;
+  // Monthly loss is only shown once the visitor tells us their own sales.
+  const salesN = num(sales);
   const figures = useMemo(() => {
     if (cost == null) return null;
     const newCost = cost * (1 + rise / 100);
-    const lost = (newCost - cost) * salesN;
+    const perSale = newCost - cost;
+    const lost = salesN ? perSale * salesN : null;
     const marginNow = sellN ? ((sellN - cost) / sellN) * 100 : null;
     const marginAfter = sellN ? ((sellN - newCost) / sellN) * 100 : null;
-    return { newCost, lost, marginNow, marginAfter };
+    return { newCost, perSale, lost, marginNow, marginAfter };
   }, [cost, rise, salesN, sellN]);
 
   return (
@@ -226,16 +228,17 @@ function ResultCard({ result, link }: { result: TryResult; link: string }) {
               You sell it for ({currency || 'USD'})
               <input
                 inputMode="decimal"
-                placeholder={(cost * 2.2).toFixed(2)}
+                placeholder="Your shop price"
                 value={sell}
                 onChange={(e) => setSell(e.target.value)}
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm tabular-nums text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-900 focus:ring-4 focus:ring-canary/40"
               />
             </label>
             <label className="flex flex-col gap-1.5 text-xs font-medium text-zinc-700">
-              Sales a month
+              Your sales a month
               <input
                 inputMode="numeric"
+                placeholder="Units of this product"
                 value={sales}
                 onChange={(e) => setSales(e.target.value)}
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm tabular-nums text-zinc-900 focus:outline-none focus:border-zinc-900 focus:ring-4 focus:ring-canary/40"
@@ -263,10 +266,20 @@ function ResultCard({ result, link }: { result: TryResult; link: string }) {
                 ))}
               </div>
             </div>
-            <p className="mt-3 font-mono text-3xl tabular-nums tracking-tight">
-              {formatMoney(figures.lost, currency)}
-              <span className="ml-2 font-sans text-sm font-normal text-zinc-400">lost a month</span>
-            </p>
+            {figures.lost != null ? (
+              <p className="mt-3 font-mono text-3xl tabular-nums tracking-tight">
+                {formatMoney(figures.lost, currency)}
+                <span className="ml-2 font-sans text-sm font-normal text-zinc-400">lost a month</span>
+              </p>
+            ) : (
+              <>
+                <p className="mt-3 font-mono text-3xl tabular-nums tracking-tight">
+                  {formatMoney(figures.perSale, currency)}
+                  <span className="ml-2 font-sans text-sm font-normal text-zinc-400">less profit on every sale</span>
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">Add your monthly sales to see what that costs you a month.</p>
+              </>
+            )}
             {figures.marginNow != null && figures.marginAfter != null ? (
               <MarginBar now={figures.marginNow} after={figures.marginAfter} />
             ) : (

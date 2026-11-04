@@ -11,7 +11,6 @@ const SELL = 24.99;
 const BEFORE = 11.4;
 const AFTER = 14.85;
 const ALERT = 45;
-const SALES = 30;
 
 const marginOf = (cost: number) => ((SELL - cost) / SELL) * 100;
 
@@ -36,7 +35,7 @@ function MarginGauge() {
   const needleRef = useRef<SVGGElement>(null);
   const marginText = useTransform(margin, (m) => `${m.toFixed(1)}%`);
   const costText = useTransform(cost, (c) => `$${c.toFixed(2)}`);
-  const lostText = useTransform(cost, (c) => `$${((c - BEFORE) * SALES).toFixed(2)}`);
+  const lostText = useTransform(cost, (c) => `$${(c - BEFORE).toFixed(2)}`);
   const [low, setLow] = useState(Boolean(reduce));
 
   // The needle turns about the gauge centre. Written straight to the SVG
@@ -121,12 +120,12 @@ function MarginGauge() {
             </motion.dd>
           </div>
           <div>
-            <dt className="text-zinc-500">Lost / month</dt>
+            <dt className="text-zinc-500">Lost per sale</dt>
             <motion.dd className="mt-1 font-mono text-base tabular-nums text-zinc-900">{lostText}</motion.dd>
           </div>
         </dl>
         <figcaption className="mt-3 text-[11px] text-zinc-400">
-          Example: sells for ${SELL.toFixed(2)}, {SALES} sales a month.
+          Example product, selling for ${SELL.toFixed(2)}.
         </figcaption>
       </div>
 
@@ -145,7 +144,7 @@ function MarginGauge() {
               <div>
                 <p className="font-medium text-zinc-900">Margin under {ALERT}% on Ceramic pour-over set</p>
                 <p className="text-xs text-zinc-600">
-                  Supplier went from ${BEFORE.toFixed(2)} to ${AFTER.toFixed(2)}. That&apos;s ${((AFTER - BEFORE) * SALES).toFixed(2)} a month.
+                  Supplier went from ${BEFORE.toFixed(2)} to ${AFTER.toFixed(2)}. That&apos;s ${(AFTER - BEFORE).toFixed(2)} less on every sale.
                 </p>
               </div>
             </motion.div>
