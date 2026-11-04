@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 import { Bird } from '@phosphor-icons/react';
 
@@ -33,11 +33,21 @@ function MarginGauge() {
   const reduce = useReducedMotion();
   const cost = useMotionValue(reduce ? AFTER : BEFORE);
   const margin = useTransform(cost, marginOf);
-  const angle = useTransform(margin, (m) => -90 + (m / 100) * 180);
+  const needleRef = useRef<SVGGElement>(null);
   const marginText = useTransform(margin, (m) => `${m.toFixed(1)}%`);
   const costText = useTransform(cost, (c) => `$${c.toFixed(2)}`);
   const lostText = useTransform(cost, (c) => `$${((c - BEFORE) * SALES).toFixed(2)}`);
   const [low, setLow] = useState(Boolean(reduce));
+
+  // The needle turns about the gauge centre. Written straight to the SVG
+  // transform attribute: Framer's style rotate on SVG pivots on the element's
+  // own bounding box, which would spin the needle about its middle.
+  useEffect(() => {
+    const place = (m: number) =>
+      needleRef.current?.setAttribute('transform', `rotate(${-90 + (m / 100) * 180} ${CX} ${CY})`);
+    place(margin.get());
+    return margin.on('change', place);
+  }, [margin]);
 
   useEffect(() => {
     if (reduce) return;
@@ -85,14 +95,13 @@ function MarginGauge() {
             fill="#f2c230"
             animate={low && !reduce ? { scale: [1, 1.7, 1], opacity: [1, 0.35, 1] } : { scale: 1, opacity: 1 }}
             transition={low && !reduce ? { duration: 1.2, repeat: Infinity } : { duration: 0.2 }}
-            style={{ transformOrigin: `${tickOut.x}px ${tickOut.y}px` }}
           />
           <text x={label.x - 6} y={label.y} textAnchor="end" className="fill-zinc-500 font-mono" fontSize="10">
             alert {ALERT}%
           </text>
-          <motion.g style={{ rotate: angle, transformOrigin: `${CX}px ${CY}px` }}>
+          <g ref={needleRef} transform={`rotate(${-90 + (marginOf(reduce ? AFTER : BEFORE) / 100) * 180} ${CX} ${CY})`}>
             <line x1={CX} y1={CY} x2={CX} y2={CY - R + 6} stroke="#18181b" strokeWidth="3" strokeLinecap="round" />
-          </motion.g>
+          </g>
           <circle cx={CX} cy={CY} r="7" fill="#18181b" />
           <text x={CX - R} y={CY + 20} textAnchor="middle" className="fill-zinc-400 font-mono" fontSize="10">0%</text>
           <text x={CX + R} y={CY + 20} textAnchor="middle" className="fill-zinc-400 font-mono" fontSize="10">100%</text>
