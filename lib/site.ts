@@ -6,7 +6,7 @@ export const SITE = {
   url: 'https://margincanary.com',
   supportEmail: 'support@margincanary.com',
   legalUpdated: '29 October 2026',
-  privacyUpdated: '24 October 2026',
+  privacyUpdated: '4 November 2026',
   // OpenAI Ads Measurement Pixel ID (public; it appears in the page anyway).
   adsPixelId: '4E7xeB8Xb2AzBuYccCEr7Q',
   company: {
