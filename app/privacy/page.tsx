@@ -105,6 +105,10 @@ export default function PrivacyPage() {
             <strong>OpenAI</strong>: measuring our ads in ChatGPT, only if you accept advertising cookies. See
             Cookies below.
           </li>
+          <li>
+            <strong>Google</strong>: measuring our Google search ads, only if you accept advertising cookies. See
+            Cookies below.
+          </li>
         </ul>
         <p>
           We are based in the UK, and some of these providers store or process data in other countries,
@@ -139,11 +143,12 @@ export default function PrivacyPage() {
           don&apos;t use cookies or any other storage on your device either.
         </p>
         <p>
-          If you accept advertising cookies, we also load OpenAI&apos;s ads measurement pixel. It uses cookies
-          and similar technology to tell us whether people who saw our ads in ChatGPT went on to create an
-          account or subscribe, and it records those events. We do not send OpenAI your name, email address
-          or payment details. We only ask visitors who arrive from one of our ads. If you reject, or don&apos;t
-          answer, the pixel is never loaded. You can change your answer at any
+          If you accept advertising cookies, we also load OpenAI&apos;s ads measurement pixel and Google&apos;s ads
+          conversion tag. They use cookies and similar technology to tell us whether people who saw our ads in
+          ChatGPT or on Google went on to create an account or subscribe, and they record those events. We do not
+          send OpenAI or Google your name, email address or payment details, and we don&apos;t use them to show you
+          ads elsewhere. We only ask visitors who arrive from one of our ads. If you reject, or don&apos;t
+          answer, neither is loaded. You can change your answer at any
           time with <strong>Cookie settings</strong> at the bottom of every page.
         </p>
       </section>

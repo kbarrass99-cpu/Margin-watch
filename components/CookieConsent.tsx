@@ -4,13 +4,19 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { onConsentChange, readConsent, writeConsent } from '@/lib/consent';
 import { loadAdsPixel } from '@/lib/adsPixel';
+import { loadGoogleAds } from '@/lib/googleAds';
 
-// The ads pixel only measures visits that came from an ad, so only those
-// visitors are asked (the ad link carries OpenAI's oppref or our UTM tags).
+// The ads tags only measure visits that came from an ad, so only those
+// visitors are asked (the ad link carries OpenAI's oppref, Google's click id
+// or our UTM tags).
 // Anyone can still answer, or change their answer, with "Cookie settings".
 function cameFromAd(): boolean {
   const params = new URLSearchParams(window.location.search);
-  return params.has('oppref') || params.get('utm_medium') === 'paid' || params.get('utm_source') === 'chatgpt';
+  return (
+    ['oppref', 'gclid', 'gbraid', 'wbraid'].some((key) => params.has(key)) ||
+    params.get('utm_medium') === 'paid' ||
+    ['chatgpt', 'google'].includes(params.get('utm_source') ?? '')
+  );
 }
 
 // Asks once whether advertising cookies may be used, and loads the OpenAI ads
@@ -25,7 +31,10 @@ export default function CookieConsent() {
       requestAnimationFrame(() => setShown(true));
     };
     const current = readConsent();
-    if (current === 'granted') loadAdsPixel();
+    if (current === 'granted') {
+      loadAdsPixel();
+      loadGoogleAds();
+    }
     if (current === null && cameFromAd()) show();
     return onConsentChange((value) => {
       if (value === null) show();
@@ -33,11 +42,14 @@ export default function CookieConsent() {
   }, []);
 
   function choose(value: 'granted' | 'denied') {
-    const pixelWasLoaded = Boolean(window.oaiq);
+    const pixelWasLoaded = Boolean(window.oaiq || window.gtag);
     writeConsent(value);
     setShown(false);
     setOpen(false);
-    if (value === 'granted') loadAdsPixel();
+    if (value === 'granted') {
+      loadAdsPixel();
+      loadGoogleAds();
+    }
     // Withdrawing consent: reload so the already-running pixel stops.
     else if (pixelWasLoaded) window.location.reload();
   }
@@ -55,7 +67,7 @@ export default function CookieConsent() {
     >
       <div className="flex items-center gap-3">
         <p id="cookie-consent-title" className="flex-1 text-xs leading-snug text-zinc-600">
-          May we use an OpenAI cookie to see if our ad brought you here?{' '}
+          May we use an advertising cookie to see if our ad brought you here?{' '}
           <Link href="/privacy#cookies" className="text-zinc-900 underline decoration-zinc-300 underline-offset-2">
             Details
           </Link>
