@@ -6,9 +6,15 @@ export const SITE = {
   url: 'https://margincanary.com',
   supportEmail: 'support@margincanary.com',
   legalUpdated: '29 October 2026',
-  privacyUpdated: '4 November 2026',
+  privacyUpdated: '11 November 2026',
   // OpenAI Ads Measurement Pixel ID (public; it appears in the page anyway).
   adsPixelId: '4E7xeB8Xb2AzBuYccCEr7Q',
+  // Google Ads conversion tag: the account's "AW-..." ID and the label of each
+  // conversion action (Google Ads > Goals > Conversions). Off while unset.
+  googleAds: {
+    conversionId: null as string | null,
+    labels: { signup: null as string | null, subscription: null as string | null },
+  },
   company: {
     name: 'Upwren Ltd',
     number: '17507839',

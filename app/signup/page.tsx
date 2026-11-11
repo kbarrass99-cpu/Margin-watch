@@ -10,6 +10,7 @@ import Field, { inputClass } from '@/components/auth/Field';
 import SubmitButton from '@/components/auth/SubmitButton';
 import { SITE } from '@/lib/site';
 import { measureConversion } from '@/lib/adsPixel';
+import { googleConversion } from '@/lib/googleAds';
 import { peekPendingTrack } from '@/lib/pendingTrack';
 import { capture } from '@/lib/analytics';
 
@@ -49,6 +50,7 @@ export default function SignupPage() {
 
     capture('signup_completed', { location: 'signup_page', from_check: Boolean(pendingTitle) });
     measureConversion('registration_completed', { type: 'customer_action' });
+    googleConversion('signup');
 
     if (data.session) {
       // Email confirmation is off, so we're logged in immediately.

@@ -34,6 +34,7 @@ import {
   type PlanId,
 } from '@/lib/plans';
 import { measureConversion } from '@/lib/adsPixel';
+import { googleConversion } from '@/lib/googleAds';
 import type { Rates } from '@/lib/fx';
 
 type Me = {
@@ -100,6 +101,11 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
               },
           sessionId ? { event_id: sessionId } : undefined
         );
+        googleConversion('subscription', {
+          value: trial ? 0 : price,
+          currency: 'USD',
+          transactionId: sessionId ?? undefined,
+        });
       }
     }
   }, []);
